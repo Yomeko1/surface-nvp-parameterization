@@ -1,0 +1,8 @@
+[project]
+name = "surface-nvp-param"
+version = "0.1.0"
+description = "Injectivity-oriented 2D NVP surface parameterization"
+requires-python = ">=3.9"
+
+[tool.setuptools.packages.find]
+include = ["surface_nvp*"]

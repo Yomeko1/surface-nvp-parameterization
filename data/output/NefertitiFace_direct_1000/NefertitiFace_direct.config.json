@@ -1,0 +1,20 @@
+{
+  "init": {
+    "method": "tutte",
+    "boundary": "circle"
+  },
+  "train": {
+    "iters": 1000,
+    "lr": 0.001,
+    "check_interval": 10,
+    "boundary_weight": 10.0,
+    "identity_weight": 0.001,
+    "area_weight": 100.0,
+    "device": "cpu",
+    "validation_device": null,
+    "intersection_batch_size": 262144
+  },
+  "io": {
+    "prim_path": null
+  }
+}

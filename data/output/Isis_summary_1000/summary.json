@@ -1,0 +1,34 @@
+[
+  {
+    "method": "nvp",
+    "iters": 1000,
+    "selected_iteration": 800,
+    "valid": true,
+    "num_flipped": 0,
+    "num_intersections": 0,
+    "min_signed_area": 0.00010090928117278963,
+    "symmetric_dirichlet_mean": 8.45287799835205,
+    "symmetric_dirichlet_max": 205.10081481933594,
+    "angle_distortion_mean_deg": 22.928605238740786,
+    "angle_distortion_max_deg": 116.19982607657403,
+    "initial_symmetric_dirichlet_mean": 16.01969337463379,
+    "initial_symmetric_dirichlet_max": 1580.786376953125,
+    "source": "data\\output\\Isis_nvp_1000\\Isis_nvp.metrics.json"
+  },
+  {
+    "method": "direct_uv",
+    "iters": 1000,
+    "selected_iteration": 1000,
+    "valid": true,
+    "num_flipped": 0,
+    "num_intersections": 0,
+    "min_signed_area": 8.339092164533213e-05,
+    "symmetric_dirichlet_mean": 4.8662614822387695,
+    "symmetric_dirichlet_max": 20.76751136779785,
+    "angle_distortion_mean_deg": 10.648738630184692,
+    "angle_distortion_max_deg": 88.40990360421152,
+    "initial_symmetric_dirichlet_mean": 16.01969337463379,
+    "initial_symmetric_dirichlet_max": 1580.786376953125,
+    "source": "data\\output\\Isis_direct_1000\\Isis_direct.metrics.json"
+  }
+]

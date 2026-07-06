@@ -1,0 +1,10 @@
+# Core dependencies
+numpy
+scipy
+torch
+matplotlib
+pyyaml
+pytest
+
+# Optional USD/USDA support:
+# pip install usd-core

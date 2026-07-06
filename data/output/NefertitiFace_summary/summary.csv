@@ -1,0 +1,3 @@
+source,method,iters,selected_iteration,valid,num_flipped,num_intersections,min_signed_area,symmetric_dirichlet_mean,symmetric_dirichlet_max,angle_distortion_mean_deg,angle_distortion_max_deg,initial_symmetric_dirichlet_mean,initial_symmetric_dirichlet_max
+data\output\NefertitiFace_nvp_1000\NefertitiFace_nvp.metrics.json,nvp,1000,20,True,0,0,0.0017598713748157024,6.645538330078125,15.331250190734863,13.211994053834053,59.7697962989459,23.46175193786621,63.08245086669922
+data\output\NefertitiFace_direct_1000\NefertitiFace_direct.metrics.json,direct_uv,1000,1000,True,0,0,0.002723531797528267,7.320541858673096,14.43966007232666,6.247485793295336,41.41193308848717,23.46175193786621,63.08245086669922

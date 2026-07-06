@@ -1,0 +1,15 @@
+{
+  "method": "nvp",
+  "iters": 1000,
+  "selected_iteration": 30,
+  "valid": true,
+  "num_flipped": 0,
+  "num_intersections": 0,
+  "min_signed_area": 0.0006488632643595338,
+  "symmetric_dirichlet_mean": 32.58623123168945,
+  "symmetric_dirichlet_max": 576.9684448242188,
+  "angle_distortion_mean_deg": 18.266167342244504,
+  "angle_distortion_max_deg": 90.38228089226241,
+  "initial_symmetric_dirichlet_mean": 474.7046203613281,
+  "initial_symmetric_dirichlet_max": 8109.88134765625
+}
