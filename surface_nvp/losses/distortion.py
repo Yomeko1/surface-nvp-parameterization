@@ -25,11 +25,34 @@ def symmetric_dirichlet_per_face(vertices: torch.Tensor, faces: torch.Tensor, uv
     dx = torch.stack([x[:, 1] - x[:, 0], x[:, 2] - x[:, 0]], dim=-1)
     du = torch.stack([u[:, 1] - u[:, 0], u[:, 2] - u[:, 0]], dim=-1)
     j = du @ torch.linalg.inv(dx)
-    frob = (j * j).sum(dim=(1, 2))
-    det = torch.det(j).clamp_min(1e-12)
-    inv_frob = frob / det.pow(2)
-    return frob + inv_frob
+    singular_values = torch.linalg.svdvals(j)
+    inverse_singular_values = (singular_values + 1e-4).reciprocal()
+    return (singular_values.pow(2) + inverse_singular_values.pow(2)).sum(dim=-1)
 
 
 def symmetric_dirichlet_loss(vertices: torch.Tensor, faces: torch.Tensor, uv: torch.Tensor) -> torch.Tensor:
-    return symmetric_dirichlet_per_face(vertices, faces, uv).mean()
+    per_face = symmetric_dirichlet_per_face(vertices, faces, uv)
+    tri = vertices[faces]
+    areas = 0.5 * torch.linalg.norm(torch.linalg.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0]), dim=-1)
+    return (per_face * areas).sum() / areas.sum().clamp_min(1e-12)
+
+
+def jacobian_determinants(vertices: torch.Tensor, faces: torch.Tensor, uv: torch.Tensor) -> torch.Tensor:
+    x = _local_2d(vertices, faces)
+    u = uv[faces]
+    dx = torch.stack([x[:, 1] - x[:, 0], x[:, 2] - x[:, 0]], dim=-1)
+    du = torch.stack([u[:, 1] - u[:, 0], u[:, 2] - u[:, 0]], dim=-1)
+    return torch.det(du @ torch.linalg.inv(dx))
+
+
+def jacobian_barrier_loss(
+    vertices: torch.Tensor,
+    faces: torch.Tensor,
+    uv: torch.Tensor,
+    reference_scale: torch.Tensor,
+    margin: float = 1e-2,
+    temperature: float = 1e-2,
+) -> torch.Tensor:
+    normalized_det = jacobian_determinants(vertices, faces, uv) / reference_scale.clamp_min(1e-12)
+    violation = torch.nn.functional.softplus((margin - normalized_det) / temperature) * temperature
+    return violation.pow(2).mean()

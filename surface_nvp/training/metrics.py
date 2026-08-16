@@ -61,13 +61,21 @@ def compute_distortion_metrics(vertices: np.ndarray, faces: np.ndarray, uv: np.n
     scale = np.median(edge_ratio[edge_ratio > 1e-12]) if np.any(edge_ratio > 1e-12) else 1.0
     scaled_edge_ratio = edge_ratio / max(float(scale), 1e-12)
     angle_diff = np.abs(_triangle_angles(len_uv) - _triangle_angles(len3)) * 180.0 / np.pi
+    area_weights = area3 / max(float(np.sum(area3)), 1e-12)
+    mean_abs_uv_area = max(float(np.mean(np.abs(uv_area))), 1e-12)
 
     return {
         "symmetric_dirichlet_mean": float(np.mean(per_face)),
+        "symmetric_dirichlet_area_weighted_mean": float(np.sum(per_face * area_weights)),
+        "symmetric_dirichlet_median": float(np.median(per_face)),
+        "symmetric_dirichlet_p90": float(np.percentile(per_face, 90)),
+        "symmetric_dirichlet_p95": float(np.percentile(per_face, 95)),
+        "symmetric_dirichlet_p99": float(np.percentile(per_face, 99)),
         "symmetric_dirichlet_max": float(np.max(per_face)),
         "uv_area_min": float(np.min(uv_area)),
         "uv_area_mean": float(np.mean(uv_area)),
         "uv_area_max": float(np.max(uv_area)),
+        "normalized_uv_area_min": float(np.min(uv_area) / mean_abs_uv_area),
         "area_ratio_min": float(np.min(abs_ratio)),
         "area_ratio_mean": float(np.mean(abs_ratio)),
         "area_ratio_max": float(np.max(abs_ratio)),
@@ -78,5 +86,6 @@ def compute_distortion_metrics(vertices: np.ndarray, faces: np.ndarray, uv: np.n
         "scaled_edge_length_ratio_mean": float(np.mean(scaled_edge_ratio)),
         "scaled_edge_length_ratio_max": float(np.max(scaled_edge_ratio)),
         "angle_distortion_mean_deg": float(np.mean(angle_diff)),
+        "angle_distortion_p95_deg": float(np.percentile(angle_diff, 95)),
         "angle_distortion_max_deg": float(np.max(angle_diff)),
     }

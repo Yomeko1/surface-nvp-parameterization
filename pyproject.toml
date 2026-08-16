@@ -1,8 +1,28 @@
 [project]
 name = "surface-nvp-param"
-version = "0.1.0"
-description = "Injectivity-oriented 2D NVP surface parameterization"
+version = "2.0.0"
+description = "Injectivity-aware affine and spline NVP surface parameterization"
 requires-python = ">=3.9"
+dependencies = [
+  "numpy",
+  "scipy",
+  "torch",
+  "matplotlib",
+  "PyYAML",
+  "nflows",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+usd = ["usd-core"]
+
+[project.scripts]
+surface-nvp-init = "scripts.init_uv:main"
+surface-nvp-train = "scripts.train_injective_nvp:main"
+surface-nvp-direct = "scripts.train_direct_uv:main"
+surface-nvp-slim = "scripts.run_slim:main"
+surface-nvp-check = "scripts.check_uv:main"
+surface-nvp-summarize = "scripts.summarize_metrics:main"
 
 [tool.setuptools.packages.find]
-include = ["surface_nvp*"]
+include = ["surface_nvp*", "scripts"]

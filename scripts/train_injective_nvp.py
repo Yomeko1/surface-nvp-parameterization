@@ -5,15 +5,14 @@ import json
 import sys
 from pathlib import Path
 
-import yaml
-
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from surface_nvp.init_param import tutte_parameterize
+from surface_nvp.init_param import resolve_initial_uv
 from surface_nvp.injectivity.validators import validate_uv
 from surface_nvp.io import load_mesh, save_mesh
 from surface_nvp.training.metrics import compute_distortion_metrics
 from surface_nvp.training.summary import build_run_summary, save_run_summary
+from surface_nvp.training.config import NVP_OVERRIDE_PATHS, apply_cli_overrides, load_config
 from surface_nvp.training.trainer import train_nvp
 from surface_nvp.visualization.plot_uv import save_uv_comparison_plot, save_uv_plot
 from surface_nvp.visualization.plot_training import save_loss_plot
@@ -24,72 +23,21 @@ from surface_nvp.visualization.uv_diagnostics import (
 )
 
 
-DEFAULT_CONFIG = {
-    "init": {"method": "tutte", "boundary": "circle"},
-    "train": {
-        "iters": 1000,
-        "lr": 1e-3,
-        "check_interval": 25,
-        "boundary_weight": 10.0,
-        "identity_weight": 1e-3,
-        "area_weight": 100.0,
-        "device": "cpu",
-        "validation_device": None,
-        "intersection_batch_size": 262144,
-    },
-    "io": {"prim_path": None},
-}
-
-
-def _deep_update(base: dict, override: dict) -> dict:
-    for key, value in override.items():
-        if isinstance(value, dict) and isinstance(base.get(key), dict):
-            _deep_update(base[key], value)
-        else:
-            base[key] = value
-    return base
-
-
-def _load_config(path: str | None) -> dict:
-    config = json.loads(json.dumps(DEFAULT_CONFIG))
-    if path is None:
-        return config
-    with Path(path).open("r", encoding="utf-8") as f:
-        loaded = yaml.safe_load(f) or {}
-    if not isinstance(loaded, dict):
-        raise ValueError("config file must contain a YAML mapping")
-    return _deep_update(config, loaded)
-
-
-def _apply_cli_overrides(config: dict, args: argparse.Namespace) -> dict:
-    mapping = {
-        "method": ("init", "method"),
-        "boundary": ("init", "boundary"),
-        "iters": ("train", "iters"),
-        "lr": ("train", "lr"),
-        "check_interval": ("train", "check_interval"),
-        "boundary_weight": ("train", "boundary_weight"),
-        "identity_weight": ("train", "identity_weight"),
-        "area_weight": ("train", "area_weight"),
-        "device": ("train", "device"),
-        "validation_device": ("train", "validation_device"),
-        "intersection_batch_size": ("train", "intersection_batch_size"),
-        "prim_path": ("io", "prim_path"),
-    }
-    for attr, path in mapping.items():
-        value = getattr(args, attr)
-        if value is not None:
-            config[path[0]][path[1]] = value
-    return config
-
-
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default=None)
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
+    parser.add_argument("--initial-uv", default=None, help="mesh whose UV coordinates are used as the shared initialization")
     parser.add_argument("--method", choices=["tutte"], default=None)
     parser.add_argument("--boundary", choices=["circle", "square"], default=None)
+    parser.add_argument("--coupling-type", choices=["affine", "spline"], default=None)
+    parser.add_argument("--num-layers", type=int, default=None)
+    parser.add_argument("--hidden-dim", type=int, default=None)
+    parser.add_argument("--mlp-layers", type=int, default=None)
+    parser.add_argument("--s-clamp", type=float, default=None)
+    parser.add_argument("--spline-bins", type=int, default=None)
+    parser.add_argument("--spline-bound", type=float, default=None)
     parser.add_argument("--iters", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--check-interval", type=int, default=None)
@@ -101,21 +49,25 @@ def main() -> None:
     parser.add_argument("--intersection-batch-size", type=int, default=None)
     parser.add_argument("--prim-path", default=None)
     args = parser.parse_args()
-    config = _apply_cli_overrides(_load_config(args.config), args)
+    config = apply_cli_overrides(load_config(args.config), args, NVP_OVERRIDE_PATHS)
     init_config = config["init"]
     train_config = config["train"]
+    model_config = config["model"]
     io_config = config["io"]
 
     mesh = load_mesh(args.input, prim_path=io_config["prim_path"])
-    if mesh.uv is not None:
-        uv0 = mesh.uv
-    elif init_config["method"] == "tutte":
-        uv0 = tutte_parameterize(mesh.vertices, mesh.faces, boundary_mode=init_config["boundary"])
-    else:
-        raise ValueError(f"unsupported init method: {init_config['method']}")
+    uv0 = resolve_initial_uv(
+        mesh,
+        method=init_config["method"],
+        boundary_mode=init_config["boundary"],
+        initial_uv_path=init_config["initial_uv"],
+        prim_path=io_config["prim_path"],
+    )
     initial_metrics = validate_uv(uv0, mesh.faces)
-    initial_distortion = compute_distortion_metrics(mesh.vertices, mesh.faces, uv0)
     print("initial", initial_metrics)
+    if not initial_metrics["is_valid"]:
+        raise ValueError(f"NVP requires a valid initial UV map: {initial_metrics}")
+    initial_distortion = compute_distortion_metrics(mesh.vertices, mesh.faces, uv0)
 
     out = Path(args.output)
     save_uv_plot(out.with_suffix(".initial.uv.png"), uv0, mesh.faces)
@@ -134,6 +86,13 @@ def main() -> None:
         area_weight=train_config["area_weight"],
         validation_device=train_config["validation_device"],
         intersection_batch_size=train_config["intersection_batch_size"],
+        coupling_type=model_config["coupling_type"],
+        num_layers=model_config["num_layers"],
+        hidden_dim=model_config["hidden_dim"],
+        mlp_layers=model_config["mlp_layers"],
+        s_clamp=model_config["s_clamp"],
+        spline_bins=model_config["spline_bins"],
+        spline_bound=model_config["spline_bound"],
         return_info=True,
     )
     final_metrics = validate_uv(uv, mesh.faces)
@@ -163,7 +122,7 @@ def main() -> None:
             "history": history,
         }
         json.dump(payload, f, indent=2)
-    save_run_summary(out, build_run_summary("nvp", train_config["iters"], payload))
+    save_run_summary(out, build_run_summary(f"nvp_{model_config['coupling_type']}", train_config["iters"], payload))
 
 
 if __name__ == "__main__":

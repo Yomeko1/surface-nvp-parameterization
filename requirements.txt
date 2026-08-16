@@ -2,6 +2,7 @@
 numpy
 scipy
 torch
+nflows
 matplotlib
 pyyaml
 pytest

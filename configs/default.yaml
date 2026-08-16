@@ -1,6 +1,15 @@
 init:
   method: tutte
   boundary: circle
+  initial_uv:
+model:
+  coupling_type: affine
+  num_layers: 6
+  hidden_dim: 64
+  mlp_layers: 3
+  s_clamp: 2.0
+  spline_bins: 8
+  spline_bound: 1.1
 train:
   iters: 1000
   lr: 0.001

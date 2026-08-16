@@ -15,7 +15,7 @@ def save_loss_plot(path: str | Path, history: list[dict]) -> None:
         ("loss_distortion", "distortion"),
         ("weighted_loss_boundary", "boundary weighted"),
         ("weighted_loss_identity", "identity weighted"),
-        ("weighted_loss_area", "area weighted"),
+        ("weighted_loss_jacobian", "Jacobian barrier weighted"),
     ]
     valid_history = [entry for entry in history if entry.get("is_valid") and not entry.get("selected_best_valid")]
     invalid_history = [entry for entry in history if entry.get("is_valid") is False]

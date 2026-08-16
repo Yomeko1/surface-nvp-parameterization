@@ -15,7 +15,7 @@ def boundary_edges(faces: np.ndarray) -> list[tuple[int, int]]:
 def extract_boundary_loop(faces: np.ndarray) -> list[int]:
     edges = boundary_edges(faces)
     if not edges:
-        raise ValueError("mesh has no boundary; first version expects disk topology")
+        raise ValueError("mesh has no boundary; this pipeline expects disk topology")
     adj: dict[int, list[int]] = defaultdict(list)
     for a, b in edges:
         adj[a].append(b)
@@ -36,7 +36,7 @@ def extract_boundary_loop(faces: np.ndarray) -> list[int]:
         if len(loop) > len(adj):
             raise ValueError("failed to close boundary loop")
     if len(loop) != len(adj):
-        raise ValueError("multiple boundary loops are not supported in the first version")
+        raise ValueError("multiple boundary loops are not supported")
     return loop
 
 

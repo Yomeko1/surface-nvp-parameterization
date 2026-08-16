@@ -11,12 +11,18 @@ SUMMARY_FIELDS = [
     "selected_iteration",
     "valid",
     "num_flipped",
+    "num_nonfinite",
     "num_intersections",
     "min_signed_area",
     "symmetric_dirichlet_mean",
+    "symmetric_dirichlet_area_weighted_mean",
+    "symmetric_dirichlet_p95",
+    "symmetric_dirichlet_p99",
     "symmetric_dirichlet_max",
     "angle_distortion_mean_deg",
+    "angle_distortion_p95_deg",
     "angle_distortion_max_deg",
+    "normalized_uv_area_min",
     "initial_symmetric_dirichlet_mean",
     "initial_symmetric_dirichlet_max",
 ]
@@ -38,15 +44,26 @@ def build_run_summary(method: str, iters: int, metrics_payload: dict) -> dict:
         "selected_iteration": selected_iteration,
         "valid": bool(final["injectivity"]["is_valid"]),
         "num_flipped": int(final["injectivity"]["num_flipped"]),
+        "num_nonfinite": int(final["injectivity"].get("num_nonfinite", 0)),
         "num_intersections": int(final["injectivity"]["num_intersections"]),
         "min_signed_area": float(final["injectivity"]["min_signed_area"]),
         "symmetric_dirichlet_mean": float(final["distortion"]["symmetric_dirichlet_mean"]),
+        "symmetric_dirichlet_area_weighted_mean": _optional_float(final["distortion"], "symmetric_dirichlet_area_weighted_mean"),
+        "symmetric_dirichlet_p95": _optional_float(final["distortion"], "symmetric_dirichlet_p95"),
+        "symmetric_dirichlet_p99": _optional_float(final["distortion"], "symmetric_dirichlet_p99"),
         "symmetric_dirichlet_max": float(final["distortion"]["symmetric_dirichlet_max"]),
         "angle_distortion_mean_deg": float(final["distortion"]["angle_distortion_mean_deg"]),
+        "angle_distortion_p95_deg": _optional_float(final["distortion"], "angle_distortion_p95_deg"),
         "angle_distortion_max_deg": float(final["distortion"]["angle_distortion_max_deg"]),
+        "normalized_uv_area_min": _optional_float(final["distortion"], "normalized_uv_area_min"),
         "initial_symmetric_dirichlet_mean": float(initial["distortion"]["symmetric_dirichlet_mean"]),
         "initial_symmetric_dirichlet_max": float(initial["distortion"]["symmetric_dirichlet_max"]),
     }
+
+
+def _optional_float(values: dict, key: str) -> float | None:
+    value = values.get(key)
+    return float(value) if value is not None else None
 
 
 def save_run_summary(path_prefix: str | Path, summary: dict) -> None:
