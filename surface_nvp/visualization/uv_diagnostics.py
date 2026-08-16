@@ -100,6 +100,80 @@ def save_distortion_comparison_heatmap(
     plt.close(fig)
 
 
+def save_distortion_heatmap(
+    path: str | Path,
+    vertices: np.ndarray,
+    faces: np.ndarray,
+    uv: np.ndarray,
+    title: str = "Symmetric Dirichlet Distortion",
+) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    values = _symmetric_dirichlet_np(vertices, faces, uv)
+    vmax = max(float(np.percentile(values, 95)), 1e-12)
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    collection = PolyCollection(
+        uv[faces],
+        array=np.clip(values, 0.0, vmax),
+        cmap="magma",
+        edgecolors="black",
+        linewidths=0.15,
+    )
+    collection.set_clim(0.0, vmax)
+    ax.add_collection(collection)
+    ax.autoscale_view()
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title(
+        f"{title}\nmean={float(np.mean(values)):.3g}, "
+        f"p95={float(np.percentile(values, 95)):.3g}, max={float(np.max(values)):.3g}"
+    )
+    cbar = fig.colorbar(collection, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("per-face symmetric Dirichlet, own p95-clipped scale")
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
+def save_intersection_heatmap(
+    path: str | Path,
+    uv: np.ndarray,
+    faces: np.ndarray,
+    intersections: list[tuple[int, int]] | list[list[int]],
+    title: str = "UV Triangle Intersections",
+) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    counts = np.zeros(faces.shape[0], dtype=np.int64)
+    if intersections:
+        pairs = np.asarray(intersections, dtype=np.int64)
+        np.add.at(counts, pairs[:, 0], 1)
+        np.add.at(counts, pairs[:, 1], 1)
+    vmax = max(int(counts.max()), 1)
+
+    fig, ax = plt.subplots(figsize=(7, 6))
+    collection = PolyCollection(
+        uv[faces],
+        array=counts,
+        cmap="YlOrRd",
+        edgecolors="black",
+        linewidths=0.15,
+    )
+    collection.set_clim(0, vmax)
+    ax.add_collection(collection)
+    ax.autoscale_view()
+    ax.set_aspect("equal", adjustable="box")
+    ax.set_title(
+        f"{title}\nintersecting pairs={len(intersections)}, "
+        f"involved faces={int(np.count_nonzero(counts))}"
+    )
+    cbar = fig.colorbar(collection, ax=ax, fraction=0.046, pad=0.04)
+    cbar.set_label("number of non-adjacent intersections involving each face")
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
 def _symmetric_dirichlet_np(vertices: np.ndarray, faces: np.ndarray, uv: np.ndarray) -> np.ndarray:
     with torch.no_grad():
         values = symmetric_dirichlet_per_face(

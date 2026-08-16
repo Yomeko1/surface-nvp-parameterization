@@ -3,6 +3,7 @@ import torch
 import pytest
 
 from surface_nvp.losses.distortion import symmetric_dirichlet_loss
+from surface_nvp.training.supervised import fit_nvp_to_target
 from surface_nvp.training.trainer import train_direct_uv, train_nvp
 from surface_nvp.training.summary import build_run_summary
 from surface_nvp.injectivity.validators import validate_uv, validate_uv_torch
@@ -37,7 +38,6 @@ def test_direct_and_nvp_share_training_metrics():
     expected = {
         "loss",
         "loss_distortion",
-        "loss_boundary",
         "loss_identity",
         "loss_jacobian",
         "weighted_loss_jacobian",
@@ -105,3 +105,71 @@ def test_training_options_are_validated():
         train_direct_uv(vertices, faces, uv0, iters=1, check_interval=0)
     with pytest.raises(ValueError, match="finite"):
         train_direct_uv(vertices, faces, uv0, iters=1, area_weight=float("nan"))
+    with pytest.raises(ValueError, match="seed"):
+        train_direct_uv(vertices, faces, uv0, iters=1, seed=1.5)
+    with pytest.raises(ValueError, match="lr_decay"):
+        train_direct_uv(vertices, faces, uv0, iters=1, lr_decay=1.0)
+    with pytest.raises(ValueError, match="removed in v2.1"):
+        train_direct_uv(vertices, faces, uv0, iters=1, boundary_weight=10.0)
+
+
+def test_nvp_seed_is_reproducible():
+    vertices, faces, uv0 = _square_mesh()
+    first, first_model, first_history = train_nvp(vertices, faces, uv0, iters=3, check_interval=1, seed=7)
+    second, second_model, second_history = train_nvp(vertices, faces, uv0, iters=3, check_interval=1, seed=7)
+
+    np.testing.assert_array_equal(first, second)
+    assert first_history == second_history
+    for key, value in first_model.state_dict().items():
+        torch.testing.assert_close(value, second_model.state_dict()[key], rtol=0.0, atol=0.0)
+
+
+def test_spline_training_does_not_rescale_initial_uv_implicitly():
+    vertices, faces, uv0 = _square_mesh()
+    uv0 = uv0 * 0.1
+
+    fitted, _, _, info = train_nvp(
+        vertices,
+        faces,
+        uv0,
+        coupling_type="spline",
+        iters=1,
+        lr=1e-12,
+        min_lr=1e-15,
+        check_interval=1,
+        return_info=True,
+    )
+
+    assert info["selected_iteration"] == 0
+    np.testing.assert_allclose(fitted, uv0, rtol=0.0, atol=2e-9)
+
+
+def test_supervised_nvp_fits_identity_target():
+    _, _, uv0 = _square_mesh()
+
+    fitted, _, history, info = fit_nvp_to_target(
+        uv0, uv0, coupling_type="affine", iters=1, check_interval=1
+    )
+
+    np.testing.assert_allclose(fitted, uv0, atol=1e-7)
+    assert history[0]["mse"] == pytest.approx(0.0)
+    assert info["selected_iteration"] == 1
+
+
+def test_plateau_restart_reduces_learning_rate():
+    vertices, faces, uv0 = _square_mesh()
+
+    _, history, info = train_direct_uv(
+        vertices,
+        faces,
+        uv0,
+        iters=2,
+        lr=1e-12,
+        min_lr=1e-15,
+        check_interval=1,
+        plateau_patience=1,
+    )
+
+    assert info["plateau_restarts"] >= 1
+    assert info["final_learning_rate"] < 1e-12
+    assert any(entry.get("restarted_from_best") for entry in history)

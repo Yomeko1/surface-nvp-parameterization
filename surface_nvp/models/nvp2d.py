@@ -58,6 +58,12 @@ class NVP2D(nn.Module):
         self.spline_bound = spline_bound
         self.register_buffer("domain_center", torch.zeros(2))
         self.register_buffer("domain_scale", torch.ones(2))
+        if coupling_type == "spline":
+            self.global_log_scale = nn.Parameter(torch.zeros(2))
+            self.global_translation = nn.Parameter(torch.zeros(2))
+        else:
+            self.register_parameter("global_log_scale", None)
+            self.register_parameter("global_translation", None)
 
     def set_domain(self, uv: torch.Tensor) -> None:
         center = 0.5 * (uv.amin(dim=0) + uv.amax(dim=0))
@@ -77,12 +83,27 @@ class NVP2D(nn.Module):
                 logdet = logdet + ld
             else:
                 out = layer(out)
+        out = out * self.domain_scale + self.domain_center
+        if self.global_log_scale is not None:
+            out = (
+                (out - self.domain_center) * torch.exp(self.global_log_scale)
+                + self.domain_center
+                + self.global_translation
+            )
+            logdet = logdet + self.global_log_scale.sum()
         if return_logdet:
-            return out * self.domain_scale + self.domain_center, logdet
-        return out * self.domain_scale + self.domain_center
+            return out, logdet
+        return out
 
     def inverse(self, uv: torch.Tensor):
-        out = (uv - self.domain_center) / self.domain_scale
+        out = uv
+        if self.global_log_scale is not None:
+            out = (
+                (out - self.global_translation - self.domain_center)
+                * torch.exp(-self.global_log_scale)
+                + self.domain_center
+            )
+        out = (out - self.domain_center) / self.domain_scale
         for layer in reversed(self.layers):
             out = layer.inverse(out)
         return out * self.domain_scale + self.domain_center

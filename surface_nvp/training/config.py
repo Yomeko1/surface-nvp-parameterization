@@ -7,7 +7,7 @@ import yaml
 
 
 DEFAULT_CONFIG = {
-    "init": {"method": "tutte", "boundary": "circle", "initial_uv": None},
+    "init": {"method": "tutte", "boundary": "circle", "geometry_scale": True, "initial_uv": None},
     "model": {
         "coupling_type": "affine",
         "num_layers": 6,
@@ -18,10 +18,14 @@ DEFAULT_CONFIG = {
         "spline_bound": 1.1,
     },
     "train": {
+        "seed": 0,
         "iters": 1000,
         "lr": 1e-3,
         "check_interval": 25,
-        "boundary_weight": 10.0,
+        "plateau_patience": 4,
+        "lr_decay": 0.5,
+        "min_lr": 1e-6,
+        "boundary_weight": 0.0,
         "identity_weight": 1e-3,
         "area_weight": 100.0,
         "device": "cpu",
@@ -33,9 +37,14 @@ DEFAULT_CONFIG = {
 
 COMMON_OVERRIDE_PATHS = {
     "initial_uv": ("init", "initial_uv"),
+    "geometry_scale": ("init", "geometry_scale"),
+    "seed": ("train", "seed"),
     "iters": ("train", "iters"),
     "lr": ("train", "lr"),
     "check_interval": ("train", "check_interval"),
+    "plateau_patience": ("train", "plateau_patience"),
+    "lr_decay": ("train", "lr_decay"),
+    "min_lr": ("train", "min_lr"),
     "boundary_weight": ("train", "boundary_weight"),
     "identity_weight": ("train", "identity_weight"),
     "area_weight": ("train", "area_weight"),

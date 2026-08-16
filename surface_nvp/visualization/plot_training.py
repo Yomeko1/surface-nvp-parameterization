@@ -13,7 +13,6 @@ def save_loss_plot(path: str | Path, history: list[dict]) -> None:
     curves = [
         ("loss", "total"),
         ("loss_distortion", "distortion"),
-        ("weighted_loss_boundary", "boundary weighted"),
         ("weighted_loss_identity", "identity weighted"),
         ("weighted_loss_jacobian", "Jacobian barrier weighted"),
     ]
@@ -35,6 +34,27 @@ def save_loss_plot(path: str | Path, history: list[dict]) -> None:
     ax.set_title("Training Loss (valid checkpoints only)")
     if ax.has_data():
         ax.legend(fontsize=8)
+    ax.grid(True, linewidth=0.3, alpha=0.5)
+    fig.tight_layout()
+    fig.savefig(path, dpi=200)
+    plt.close(fig)
+
+
+def save_supervised_loss_plot(path: str | Path, history: list[dict]) -> None:
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    fig, ax = plt.subplots(figsize=(7, 4))
+    ax.plot(
+        [entry["iteration"] for entry in history],
+        [entry["normalized_mse"] for entry in history],
+        marker="o",
+        linewidth=1.2,
+        markersize=3,
+    )
+    ax.set_yscale("log")
+    ax.set_xlabel("iteration")
+    ax.set_ylabel("normalized MSE")
+    ax.set_title("Supervised Target Fitting")
     ax.grid(True, linewidth=0.3, alpha=0.5)
     fig.tight_layout()
     fig.savefig(path, dpi=200)

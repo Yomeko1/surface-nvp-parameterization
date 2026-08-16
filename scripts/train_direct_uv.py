@@ -19,7 +19,9 @@ from surface_nvp.visualization.plot_uv import save_uv_comparison_plot, save_uv_p
 from surface_nvp.visualization.uv_diagnostics import (
     save_area_comparison_heatmap,
     save_distortion_comparison_heatmap,
+    save_distortion_heatmap,
     save_flip_heatmap,
+    save_intersection_heatmap,
 )
 
 
@@ -29,10 +31,15 @@ def main() -> None:
     parser.add_argument("--input", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--initial-uv", default=None, help="mesh whose UV coordinates are used as the shared initialization")
+    parser.add_argument("--geometry-scale", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--iters", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--check-interval", type=int, default=None)
-    parser.add_argument("--boundary-weight", type=float, default=None)
+    parser.add_argument("--plateau-patience", type=int, default=None)
+    parser.add_argument("--lr-decay", type=float, default=None)
+    parser.add_argument("--min-lr", type=float, default=None)
+    parser.add_argument("--boundary-weight", type=float, default=None, help="deprecated; must be 0")
     parser.add_argument("--identity-weight", type=float, default=None)
     parser.add_argument("--area-weight", type=float, default=None)
     parser.add_argument("--device", default=None)
@@ -50,6 +57,7 @@ def main() -> None:
         boundary_mode=config["init"]["boundary"],
         initial_uv_path=config["init"]["initial_uv"],
         prim_path=config["io"]["prim_path"],
+        geometry_scale=config["init"]["geometry_scale"],
     )
     initial_metrics = validate_uv(uv0, mesh.faces)
     print("initial", initial_metrics)
@@ -65,11 +73,15 @@ def main() -> None:
         lr=train_config["lr"],
         device=train_config["device"],
         check_interval=train_config["check_interval"],
+        plateau_patience=train_config["plateau_patience"],
+        lr_decay=train_config["lr_decay"],
+        min_lr=train_config["min_lr"],
         boundary_weight=train_config["boundary_weight"],
         identity_weight=train_config["identity_weight"],
         area_weight=train_config["area_weight"],
         validation_device=train_config["validation_device"],
         intersection_batch_size=train_config["intersection_batch_size"],
+        seed=train_config["seed"],
     )
     final_metrics = validate_uv(uv, mesh.faces)
     final_distortion = compute_distortion_metrics(mesh.vertices, mesh.faces, uv)
@@ -82,7 +94,16 @@ def main() -> None:
     save_flip_heatmap(out.with_suffix(".initial.flip_heatmap.png"), uv0, mesh.faces, title="Initial UV Flip Heatmap")
     save_flip_heatmap(out.with_suffix(".flip_heatmap.png"), uv, mesh.faces, title="Final Direct UV Flip Heatmap")
     save_area_comparison_heatmap(out.with_suffix(".area_compare.png"), uv0, uv, mesh.faces)
+    save_distortion_heatmap(
+        out.with_suffix(".initial.distortion.png"), mesh.vertices, mesh.faces, uv0, title="Initial Symmetric Dirichlet"
+    )
+    save_distortion_heatmap(
+        out.with_suffix(".distortion.png"), mesh.vertices, mesh.faces, uv, title="Final Direct UV Symmetric Dirichlet"
+    )
     save_distortion_comparison_heatmap(out.with_suffix(".distortion_compare.png"), mesh.vertices, mesh.faces, uv0, uv)
+    save_intersection_heatmap(
+        out.with_suffix(".intersection_heatmap.png"), uv, mesh.faces, final_metrics["intersections"]
+    )
     save_uv_comparison_plot(
         out.with_suffix(".compare.png"),
         uv0,

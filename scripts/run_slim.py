@@ -19,7 +19,9 @@ from surface_nvp.visualization.plot_uv import save_uv_comparison_plot, save_uv_p
 from surface_nvp.visualization.uv_diagnostics import (
     save_area_comparison_heatmap,
     save_distortion_comparison_heatmap,
+    save_distortion_heatmap,
     save_flip_heatmap,
+    save_intersection_heatmap,
 )
 
 
@@ -29,6 +31,7 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     parser.add_argument("--executable", required=True, help="path to the surface_nvp_slim executable")
     parser.add_argument("--initial-uv", default=None, help="mesh whose UV coordinates are used as the shared initialization")
+    parser.add_argument("--geometry-scale", action=argparse.BooleanOptionalAction, default=True)
     parser.add_argument("--iters", type=int, default=20)
     parser.add_argument("--boundary", choices=["circle", "square"], default="circle")
     parser.add_argument("--prim-path", default=None)
@@ -47,6 +50,7 @@ def main() -> None:
         boundary_mode=args.boundary,
         initial_uv_path=args.initial_uv,
         prim_path=args.prim_path,
+        geometry_scale=args.geometry_scale,
     )
     initial_metrics = validate_uv(uv0, mesh.faces)
     if not initial_metrics["is_valid"]:
@@ -79,8 +83,6 @@ def main() -> None:
         uv = slim_mesh.uv
 
     final_metrics = validate_uv(uv, mesh.faces)
-    if not final_metrics["is_valid"]:
-        raise RuntimeError(f"SLIM produced an invalid UV map: {final_metrics}")
     final_distortion = compute_distortion_metrics(mesh.vertices, mesh.faces, uv)
     out = Path(args.output)
     save_mesh(out, mesh, uv=uv)
@@ -89,7 +91,16 @@ def main() -> None:
     save_flip_heatmap(out.with_suffix(".initial.flip_heatmap.png"), uv0, mesh.faces, title="Initial UV Flip Heatmap")
     save_flip_heatmap(out.with_suffix(".flip_heatmap.png"), uv, mesh.faces, title="Final SLIM UV Flip Heatmap")
     save_area_comparison_heatmap(out.with_suffix(".area_compare.png"), uv0, uv, mesh.faces)
+    save_distortion_heatmap(
+        out.with_suffix(".initial.distortion.png"), mesh.vertices, mesh.faces, uv0, title="Initial Symmetric Dirichlet"
+    )
+    save_distortion_heatmap(
+        out.with_suffix(".distortion.png"), mesh.vertices, mesh.faces, uv, title="Final SLIM Symmetric Dirichlet"
+    )
     save_distortion_comparison_heatmap(out.with_suffix(".distortion_compare.png"), mesh.vertices, mesh.faces, uv0, uv)
+    save_intersection_heatmap(
+        out.with_suffix(".intersection_heatmap.png"), uv, mesh.faces, final_metrics["intersections"]
+    )
     save_uv_comparison_plot(
         out.with_suffix(".compare.png"),
         uv0,
@@ -119,6 +130,8 @@ def main() -> None:
     save_run_summary(out, build_run_summary("slim", args.iters, payload))
     print("initial", initial_metrics)
     print("final", final_metrics)
+    if not final_metrics["is_valid"]:
+        raise RuntimeError(f"SLIM produced an invalid UV map: {final_metrics}")
 
 
 if __name__ == "__main__":

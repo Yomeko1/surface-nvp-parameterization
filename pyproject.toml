@@ -1,7 +1,12 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "surface-nvp-param"
-version = "2.0.0"
+version = "2.1.0"
 description = "Injectivity-aware affine and spline NVP surface parameterization"
+readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
   "numpy",
@@ -23,6 +28,7 @@ surface-nvp-direct = "scripts.train_direct_uv:main"
 surface-nvp-slim = "scripts.run_slim:main"
 surface-nvp-check = "scripts.check_uv:main"
 surface-nvp-summarize = "scripts.summarize_metrics:main"
+surface-nvp-fit-target = "scripts.fit_nvp_to_target:main"
 
 [tool.setuptools.packages.find]
 include = ["surface_nvp*", "scripts"]
