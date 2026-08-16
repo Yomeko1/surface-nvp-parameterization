@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "key": "Balls:direct:seed0:eb03706ac0f1",
+      "dataset": "Balls",
+      "method": "direct",
+      "seed": 0,
+      "run_signature": "eb03706ac0f1d301d0a25119f507c7f2c479529ac393e03170f818bac3781e66",
+      "initial_uv_sha256": "8d90942b51805fd20c26f2770754a0bd86f302a8c7ba30ad7c6c182d08ca81f5",
+      "returncode": 0,
+      "wall_elapsed_seconds": 27.07769289999851,
+      "metrics": "data\\output\\v2_1_balls\\Balls\\direct\\Balls_direct.metrics.json",
+      "metrics_sha256": "2b48a330380fb798e7b4f536a73159ebdf33c70ee10b98d7644ad2f53cdeb21b",
+      "finished_at": "2026-08-16T13:53:36.754961+00:00"
+    },
+    {
+      "key": "Balls:affine:seed0:eb03706ac0f1",
+      "dataset": "Balls",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "eb03706ac0f1d301d0a25119f507c7f2c479529ac393e03170f818bac3781e66",
+      "initial_uv_sha256": "8d90942b51805fd20c26f2770754a0bd86f302a8c7ba30ad7c6c182d08ca81f5",
+      "returncode": 0,
+      "wall_elapsed_seconds": 34.9826819000009,
+      "metrics": "data\\output\\v2_1_balls\\Balls\\affine\\Balls_affine.metrics.json",
+      "metrics_sha256": "c713f123d4631898c4c3a34fc8d5d2dfcde1be2edf24527dca49c336b8426f8d",
+      "finished_at": "2026-08-16T13:54:11.740356+00:00"
+    },
+    {
+      "key": "Balls:spline:seed0:eb03706ac0f1",
+      "dataset": "Balls",
+      "method": "spline",
+      "seed": 0,
+      "run_signature": "eb03706ac0f1d301d0a25119f507c7f2c479529ac393e03170f818bac3781e66",
+      "initial_uv_sha256": "8d90942b51805fd20c26f2770754a0bd86f302a8c7ba30ad7c6c182d08ca81f5",
+      "returncode": 0,
+      "wall_elapsed_seconds": 106.39178559999709,
+      "metrics": "data\\output\\v2_1_balls\\Balls\\spline\\Balls_spline.metrics.json",
+      "metrics_sha256": "e791ac578672470d4929e845985e98abdf1dc6b28eeaa0072b50bd9cf60d2cee",
+      "finished_at": "2026-08-16T13:55:58.135524+00:00"
+    },
+    {
+      "key": "Balls:slim:seed0:eb03706ac0f1",
+      "dataset": "Balls",
+      "method": "slim",
+      "seed": 0,
+      "run_signature": "eb03706ac0f1d301d0a25119f507c7f2c479529ac393e03170f818bac3781e66",
+      "initial_uv_sha256": "8d90942b51805fd20c26f2770754a0bd86f302a8c7ba30ad7c6c182d08ca81f5",
+      "returncode": 0,
+      "wall_elapsed_seconds": 9.560174300000654,
+      "metrics": "data\\output\\v2_1_balls\\Balls\\slim\\Balls_slim.metrics.json",
+      "metrics_sha256": "c3ce984f64bd55217c2912306629f7032b235bc227da3e9895e0684be92ae896",
+      "finished_at": "2026-08-16T13:56:07.698231+00:00"
+    }
+  ]
+}

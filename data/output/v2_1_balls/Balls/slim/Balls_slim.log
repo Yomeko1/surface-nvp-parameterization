@@ -1,0 +1,7 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\run_slim.py --input F:\Juyong_Zhang\1\try\CODE\data\input\Balls\Balls.obj --initial-uv F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_balls\Balls\initial\Balls_initial.obj --output F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_balls\Balls\slim\Balls_slim.obj --geometry-scale --executable F:\Juyong_Zhang\1\try\CODE\build\slim_runner\Release\surface_nvp_slim.exe --iters 20
+
+STDOUT:
+initial {'num_flipped': 0, 'min_signed_area': 0.006513184534496378, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+final {'num_flipped': 0, 'min_signed_area': 0.019100169025532864, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:
