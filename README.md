@@ -109,10 +109,18 @@ Run the reproducible five-mesh v2.1 comparison matrix after building SLIM:
 python scripts/run_benchmark.py --output-root data/output/benchmark --seed 0 --iters 1000 --slim-iters 20 --device cuda --validation-device cuda --intersection-batch-size 65536 --slim-executable build/slim_runner/Release/surface_nvp_slim.exe --continue-on-error
 ```
 
+Run several stochastic seeds in one resumable benchmark and summarize their
+mean, sample standard deviation, validity rate, and paired method differences:
+
+```bash
+python scripts/run_benchmark.py --output-root data/output/multiseed --datasets Balls David328 NefertitiFace Isis Cow --methods affine spline --seeds 0 1 2 3 4 --iters 1000 --device cuda --validation-device cuda --intersection-batch-size 65536
+python scripts/summarize_benchmark_seeds.py --input data/output/multiseed/summary.json --output-root data/output/multiseed
+```
+
 The benchmark writes one explicit Tutte initialization per mesh, passes that
 same file to every method, and supports resuming completed runs. Its manifest
 records the Git revision, source/config/data/binary/initial-UV hashes, package
-versions, GPU, seed, and effective settings. `summary.csv` and `summary.json` include an initial row and all method
+versions, GPU, seed or seed list, and effective settings. `summary.csv` and `summary.json` include an initial row and all method
 rows; invalid method outputs are retained and marked as failed rather than
 reported as successful. Resume is allowed only when the Git state, config hash,
 datasets, methods, and run parameters match the existing manifest.

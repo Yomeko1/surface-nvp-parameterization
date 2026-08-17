@@ -37,7 +37,9 @@ def main() -> None:
     parser.add_argument("--datasets", nargs="+", choices=DATASETS, default=list(DATASETS))
     parser.add_argument("--methods", nargs="+", choices=METHODS, default=list(METHODS))
     parser.add_argument("--config", default="configs/default.yaml")
-    parser.add_argument("--seed", type=int, default=0)
+    seed_group = parser.add_mutually_exclusive_group()
+    seed_group.add_argument("--seed", type=int, default=None)
+    seed_group.add_argument("--seeds", nargs="+", type=int)
     parser.add_argument("--iters", type=int, default=1000)
     parser.add_argument("--slim-iters", type=int, default=20)
     parser.add_argument("--check-interval", type=int, default=25)
@@ -47,10 +49,21 @@ def main() -> None:
     parser.add_argument("--slim-executable", default=None)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--continue-on-error", action="store_true")
+    parser.add_argument("--stop-after-dataset", choices=DATASETS, default=None)
     args = parser.parse_args()
 
-    if args.seed < 0:
-        parser.error("--seed must be non-negative")
+    seeds = args.seeds if args.seeds is not None else [0 if args.seed is None else args.seed]
+    multi_seed = args.seeds is not None
+    if any(seed < 0 for seed in seeds):
+        parser.error("seeds must be non-negative")
+    if len(set(seeds)) != len(seeds):
+        parser.error("seeds must be unique")
+    deterministic_methods = set(args.methods) - {"affine", "spline"}
+    if multi_seed and deterministic_methods:
+        parser.error(
+            "--seeds supports stochastic affine/spline methods only; run deterministic "
+            f"methods once with --seed ({', '.join(sorted(deterministic_methods))})"
+        )
     if min(args.iters, args.slim_iters, args.check_interval, args.intersection_batch_size) <= 0:
         parser.error("iteration counts, check interval, and batch size must be positive")
     if args.device.startswith("cuda") and not torch.cuda.is_available():
@@ -65,7 +78,7 @@ def main() -> None:
     output_root = (ROOT / args.output_root).resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     manifest_path = output_root / "manifest.json"
-    manifest = _manifest(args, output_root, slim_executable, config_path, geometry_scale)
+    manifest = _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path, geometry_scale)
     existing_manifest = _read_json(manifest_path)
     if existing_manifest is not None and existing_manifest.get("run_signature") != manifest["run_signature"]:
         parser.error("output root belongs to a different benchmark configuration; choose a new directory")
@@ -113,55 +126,70 @@ def main() -> None:
             initial_hashes[dataset] = actual_initial_hash
             _write_json(manifest_path, manifest)
 
-        for method in args.methods:
-            key = _run_key(dataset, method, args.seed, manifest["run_signature"])
-            output_path = output_root / dataset / method / f"{dataset}_{method}{input_path.suffix}"
-            metrics_path = output_path.with_suffix(".metrics.json")
-            record = records.get(key)
-            expected_metrics = _display_path(metrics_path)
-            if not args.force and _is_completed_record(
-                record, metrics_path, expected_metrics, initial_hashes[dataset]
-            ):
-                print(f"skip completed {key}", flush=True)
-                continue
-            if metrics_path.is_file():
-                metrics_path.unlink()
+        for seed in seeds:
+            for method in args.methods:
+                key = _run_key(dataset, method, seed, manifest["run_signature"])
+                output_path = _output_path(
+                    output_root, dataset, method, seed, input_path.suffix, multi_seed
+                )
+                metrics_path = output_path.with_suffix(".metrics.json")
+                record = records.get(key)
+                expected_metrics = _display_path(metrics_path)
+                if not args.force and _is_completed_record(
+                    record, metrics_path, expected_metrics, initial_hashes[dataset]
+                ):
+                    print(f"skip completed {key}", flush=True)
+                    continue
+                if metrics_path.is_file():
+                    metrics_path.unlink()
 
-            command = _method_command(
-                args, method, input_path, initial_path, output_path, slim_executable, geometry_scale
-            )
-            print(f"run {key}", flush=True)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            start = time.perf_counter()
-            completed = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
-            wall_elapsed = time.perf_counter() - start
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            output_path.with_suffix(".log").write_text(
-                f"COMMAND: {subprocess.list2cmdline(command)}\n\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
-                encoding="utf-8",
-            )
-            records[key] = {
-                "key": key,
-                "dataset": dataset,
-                "method": method,
-                "seed": args.seed,
-                "run_signature": manifest["run_signature"],
-                "initial_uv_sha256": initial_hashes[dataset],
-                "returncode": completed.returncode,
-                "wall_elapsed_seconds": wall_elapsed,
-                "metrics": _display_path(metrics_path) if metrics_path.is_file() else None,
-                "metrics_sha256": _sha256_file(metrics_path) if metrics_path.is_file() else None,
-                "finished_at": datetime.now(timezone.utc).isoformat(),
-            }
-            _write_json(state_path, {"runs": list(records.values())})
-            print(f"finished {key} in {wall_elapsed:.1f}s (exit {completed.returncode})", flush=True)
-            if completed.returncode != 0 and not args.continue_on_error:
-                raise RuntimeError(f"benchmark run failed: {key}; see {output_path.with_suffix('.log')}")
+                command = _method_command(
+                    args,
+                    method,
+                    seed,
+                    input_path,
+                    initial_path,
+                    output_path,
+                    slim_executable,
+                    geometry_scale,
+                )
+                print(f"run {key}", flush=True)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                start = time.perf_counter()
+                completed = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, check=False)
+                wall_elapsed = time.perf_counter() - start
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                output_path.with_suffix(".log").write_text(
+                    f"COMMAND: {subprocess.list2cmdline(command)}\n\nSTDOUT:\n{completed.stdout}\nSTDERR:\n{completed.stderr}",
+                    encoding="utf-8",
+                )
+                records[key] = {
+                    "key": key,
+                    "dataset": dataset,
+                    "method": method,
+                    "seed": seed,
+                    "run_signature": manifest["run_signature"],
+                    "initial_uv_sha256": initial_hashes[dataset],
+                    "returncode": completed.returncode,
+                    "wall_elapsed_seconds": wall_elapsed,
+                    "metrics": _display_path(metrics_path) if metrics_path.is_file() else None,
+                    "metrics_sha256": _sha256_file(metrics_path) if metrics_path.is_file() else None,
+                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                }
+                _write_json(state_path, {"runs": list(records.values())})
+                print(f"finished {key} in {wall_elapsed:.1f}s (exit {completed.returncode})", flush=True)
+                if completed.returncode != 0 and not args.continue_on_error:
+                    raise RuntimeError(f"benchmark run failed: {key}; see {output_path.with_suffix('.log')}")
 
-    _write_summary(output_root, args, records)
+        if args.stop_after_dataset == dataset:
+            break
+
+    _write_summary(output_root, args, seeds, multi_seed, records)
 
 
-def _method_command(args, method, input_path, initial_path, output_path, slim_executable, geometry_scale):
+def _method_command(
+    args, method, seed, input_path, initial_path, output_path, slim_executable, geometry_scale
+):
     common = [
         "--input",
         str(input_path),
@@ -190,7 +218,7 @@ def _method_command(args, method, input_path, initial_path, output_path, slim_ex
         str((ROOT / args.config).resolve()),
         *common,
         "--seed",
-        str(args.seed),
+        str(seed),
         "--iters",
         str(args.iters),
         "--check-interval",
@@ -207,35 +235,52 @@ def _method_command(args, method, input_path, initial_path, output_path, slim_ex
     return command
 
 
-def _write_summary(output_root: Path, args, records: dict) -> None:
+def _write_summary(output_root: Path, args, seeds: list[int], multi_seed: bool, records: dict) -> None:
     manifest = _read_json(output_root / "manifest.json")
     run_signature = manifest["run_signature"]
     rows = []
     for dataset in args.datasets:
+        expected_initial_hash = manifest["initial_uv_sha256"].get(dataset)
+        if expected_initial_hash is None:
+            continue
         initial_added = False
-        for method in args.methods:
-            key = _run_key(dataset, method, args.seed, run_signature)
-            record = records.get(key, {})
-            metrics_path = output_root / dataset / method / f"{dataset}_{method}.metrics.json"
-            if not _metrics_match_record(
-                record,
-                metrics_path,
-                _display_path(metrics_path),
-                manifest["initial_uv_sha256"][dataset],
-            ):
-                continue
-            payload = _read_json(metrics_path)
-            if not initial_added:
-                initial_payload = {
-                    "initial": payload["initial"],
-                    "final": payload["initial"],
-                    "training": {"selected_iteration": 0},
-                    "history": [],
-                }
-                rows.append(_summary_row(dataset, "initial", args.seed, 0, initial_payload, {}, metrics_path))
-                initial_added = True
-            iters = args.slim_iters if method == "slim" else args.iters
-            rows.append(_summary_row(dataset, method, args.seed, iters, payload, record, metrics_path))
+        input_suffix = DATASETS[dataset].suffix
+        for seed in seeds:
+            for method in args.methods:
+                key = _run_key(dataset, method, seed, run_signature)
+                record = records.get(key, {})
+                output_path = _output_path(
+                    output_root, dataset, method, seed, input_suffix, multi_seed
+                )
+                metrics_path = output_path.with_suffix(".metrics.json")
+                if not _metrics_match_record(
+                    record,
+                    metrics_path,
+                    _display_path(metrics_path),
+                    expected_initial_hash,
+                ):
+                    iters = args.slim_iters if method == "slim" else args.iters
+                    rows.append(
+                        _missing_summary_row(dataset, method, seed, iters, record, metrics_path)
+                    )
+                    continue
+                payload = _read_json(metrics_path)
+                if not initial_added:
+                    initial_payload = {
+                        "initial": payload["initial"],
+                        "final": payload["initial"],
+                        "training": {"selected_iteration": 0},
+                        "history": [],
+                    }
+                    initial_seed = None if multi_seed else seed
+                    rows.append(
+                        _summary_row(
+                            dataset, "initial", initial_seed, 0, initial_payload, {}, metrics_path
+                        )
+                    )
+                    initial_added = True
+                iters = args.slim_iters if method == "slim" else args.iters
+                rows.append(_summary_row(dataset, method, seed, iters, payload, record, metrics_path))
 
     fields = [
         "dataset",
@@ -256,11 +301,12 @@ def _write_summary(output_root: Path, args, records: dict) -> None:
 def _summary_row(dataset, method, seed, iters, payload, record, metrics_path):
     row = build_run_summary(method, iters, payload)
     returncode = record.get("returncode")
+    complete = returncode in (None, 0) and row["valid"]
     row.update(
         {
             "dataset": dataset,
             "seed": seed,
-            "status": "complete" if returncode in (None, 0) else "failed",
+            "status": "complete" if complete else "failed",
             "wall_elapsed_seconds": record.get("wall_elapsed_seconds"),
             "training_elapsed_seconds": (payload.get("training") or {}).get("elapsed_seconds"),
             "source": _display_path(metrics_path),
@@ -269,7 +315,25 @@ def _summary_row(dataset, method, seed, iters, payload, record, metrics_path):
     return row
 
 
-def _manifest(args, output_root, slim_executable, config_path, geometry_scale):
+def _missing_summary_row(dataset, method, seed, iters, record, metrics_path):
+    row = {field: None for field in SUMMARY_FIELDS}
+    row.update(
+        {
+            "dataset": dataset,
+            "seed": seed,
+            "status": "failed" if record else "missing",
+            "wall_elapsed_seconds": record.get("wall_elapsed_seconds"),
+            "training_elapsed_seconds": None,
+            "source": _display_path(metrics_path),
+            "method": method,
+            "iters": iters,
+            "valid": False,
+        }
+    )
+    return row
+
+
+def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path, geometry_scale):
     packages = {}
     for name in ("numpy", "scipy", "torch", "matplotlib", "PyYAML", "nflows", "usd-core"):
         try:
@@ -288,6 +352,16 @@ def _manifest(args, output_root, slim_executable, config_path, geometry_scale):
         git_status = [line for line in git_status if not line[3:].replace("\\", "/").startswith(output_prefix)]
     dataset_hashes = {name: _sha256_file(DATASETS[name]) for name in args.datasets}
     slim_hash = _sha256_file(slim_executable) if slim_executable else None
+    environment = {
+        "python": sys.version,
+        "platform": platform.platform(),
+        "packages": packages,
+        "torch_cuda": torch.version.cuda,
+        "cudnn": torch.backends.cudnn.version(),
+        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        "gpu_driver": _gpu_driver_version(),
+    }
+    seed_settings = {"seeds": seeds} if multi_seed else {"seed": seeds[0]}
     signature_payload = {
         "git_commit": git_commit,
         "git_status": git_status,
@@ -295,7 +369,7 @@ def _manifest(args, output_root, slim_executable, config_path, geometry_scale):
         "config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
         "datasets": dataset_hashes,
         "methods": list(args.methods),
-        "seed": args.seed,
+        **seed_settings,
         "iters": args.iters,
         "slim_iters": args.slim_iters,
         "check_interval": args.check_interval,
@@ -305,19 +379,15 @@ def _manifest(args, output_root, slim_executable, config_path, geometry_scale):
         "geometry_scale": geometry_scale,
         "slim_sha256": slim_hash,
         "initial_uv_sha256": {},
+        "environment": environment,
     }
     run_signature = _benchmark_signature(signature_payload)
-    return {
+    manifest = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "run_signature": run_signature,
         "git_commit": git_commit,
         "git_status": git_status,
-        "python": sys.version,
-        "platform": platform.platform(),
-        "packages": packages,
-        "torch_cuda": torch.version.cuda,
-        "cudnn": torch.backends.cudnn.version(),
-        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        **environment,
         "source_sha256": signature_payload["source_sha256"],
         "output_root": _display_path(output_root),
         "datasets": {
@@ -325,7 +395,7 @@ def _manifest(args, output_root, slim_executable, config_path, geometry_scale):
             for name in args.datasets
         },
         "methods": args.methods,
-        "seed": args.seed,
+        **seed_settings,
         "iters": args.iters,
         "slim_iters": args.slim_iters,
         "check_interval": args.check_interval,
@@ -338,14 +408,39 @@ def _manifest(args, output_root, slim_executable, config_path, geometry_scale):
         "slim_executable": str(slim_executable) if slim_executable else None,
         "slim_sha256": slim_hash,
     }
+    return manifest
 
 
 def _geometry_scale_flag(enabled: bool) -> str:
     return "--geometry-scale" if enabled else "--no-geometry-scale"
 
 
+def _gpu_driver_version() -> str | None:
+    if not torch.cuda.is_available():
+        return None
+    try:
+        completed = subprocess.run(
+            ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+    versions = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    return versions[0] if versions else None
+
+
 def _run_key(dataset: str, method: str, seed: int, run_signature: str) -> str:
     return f"{dataset}:{method}:seed{seed}:{run_signature[:12]}"
+
+
+def _output_path(
+    output_root: Path, dataset: str, method: str, seed: int, suffix: str, multi_seed: bool
+) -> Path:
+    if multi_seed:
+        return output_root / dataset / f"seed_{seed}" / method / f"{dataset}_{method}_seed{seed}{suffix}"
+    return output_root / dataset / method / f"{dataset}_{method}{suffix}"
 
 
 def _benchmark_signature(payload: dict) -> str:
