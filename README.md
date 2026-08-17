@@ -125,17 +125,18 @@ rows; invalid method outputs are retained and marked as failed rather than
 reported as successful. Resume is allowed only when the Git state, config hash,
 datasets, methods, and run parameters match the existing manifest.
 
-The formal seed-0 v2.1 outputs are stored in `data/output/v2_1_balls/`,
-`data/output/v2_1_small/`, and `data/output/v2_1_cow/`. Their compatible
-five-mesh summary and component hashes are in `data/output/v2_1_all/`. Rebuild
-the merged summary without modifying the original run artifacts with:
+The formal seed-0 v2.1 outputs are stored in `data/output/v2.1/seed0/balls/`,
+`data/output/v2.1/seed0/small/`, and `data/output/v2.1/seed0/cow/`. Their
+compatible five-mesh summary and component hashes are in
+`data/output/v2.1/seed0/all/`. Rebuild the merged summary without modifying
+the original run artifacts with:
 
 ```bash
-python scripts/merge_benchmark_summaries.py --inputs data/output/v2_1_balls data/output/v2_1_small data/output/v2_1_cow --output-root data/output/v2_1_all
+python scripts/merge_benchmark_summaries.py --inputs data/output/v2.1/seed0/balls data/output/v2.1/seed0/small data/output/v2.1/seed0/cow --output-root data/output/v2.1/seed0/all
 ```
 
 The formal Affine/Spline seeds 0-4 matrix is stored in
-`data/output/v2_1_multiseed/`, including all meshes, diagnostics, raw metrics,
+`data/output/v2.1/multiseed/`, including all meshes, diagnostics, raw metrics,
 run hashes, `statistics.csv`, and paired `paired.csv` comparisons.
 
 Diagnose whether an NVP architecture can represent a known target UV map:
@@ -308,6 +309,6 @@ The NVP map is orientation-preserving in continuous 2D parameter space because e
 
 The method preserves injectivity best when the initial UV is already valid. Tutte circle initialization is the default because it is the safest first choice for a disk-topology triangular mesh.
 
-The legacy directories in `data/output/` are the formal v1 affine-NVP and direct-UV runs for five meshes. They are retained as historical baselines. `data/output/v2_1_balls/` contains the clean, shared-scale v2.1 comparison for Direct UV, Affine-NVP, Spline-NVP, and SLIM.
+The legacy directories in `data/output/v1/` are the formal v1 affine-NVP and direct-UV runs for five meshes. They are retained as historical baselines. `data/output/v2.1/seed0/` contains the clean, shared-scale v2.1 comparison for Direct UV, Affine-NVP, Spline-NVP, and SLIM.
 
 See `v2.1.md` for the exact v2.1 snapshot status, verification record, and known limitations. Git tags identify the release rollback points.
