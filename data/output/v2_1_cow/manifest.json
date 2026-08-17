@@ -1,0 +1,51 @@
+{
+  "created_at": "2026-08-16T23:59:49.350045+00:00",
+  "run_signature": "429b65c1b1553c938dd6db72155016bf77ade1c9556a6a8d16165ed46ce76269",
+  "git_commit": "3b6b813490dbc63426e94889a9d579315b228a1f",
+  "git_status": [
+    "?? data/output/v2_1_small/"
+  ],
+  "python": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "packages": {
+    "numpy": "2.4.4",
+    "scipy": "1.16.3",
+    "torch": "2.11.0+cu128",
+    "matplotlib": "3.10.7",
+    "PyYAML": "6.0.3",
+    "nflows": "0.14",
+    "usd-core": "26.5"
+  },
+  "torch_cuda": "12.8",
+  "cudnn": 91900,
+  "gpu": "NVIDIA GeForce RTX 3070 Ti Laptop GPU",
+  "source_sha256": "4f4915bd805f3718e8f7f2ea370c8aa55bd194ba31527ce3dce8399b95c02609",
+  "output_root": "data\\output\\v2_1_cow",
+  "datasets": {
+    "Cow": {
+      "path": "data\\input\\Cow\\Cow_dABF.usda",
+      "sha256": "8daf3a4dd0e614a2d5f332375ed9a1950e54b10f752a842e1b0ab726d8ea70e0"
+    }
+  },
+  "methods": [
+    "direct",
+    "affine",
+    "spline",
+    "slim"
+  ],
+  "seed": 0,
+  "iters": 1000,
+  "slim_iters": 20,
+  "check_interval": 25,
+  "device": "cuda",
+  "validation_device": "cuda",
+  "intersection_batch_size": 65536,
+  "config": "configs\\default.yaml",
+  "config_sha256": "eac97bfc726fd468d039f38661d5327287a8ff0dcac2fdfc0fb655c9bd25b338",
+  "geometry_scale": true,
+  "slim_executable": "F:\\Juyong_Zhang\\1\\try\\CODE\\build\\slim_runner\\Release\\surface_nvp_slim.exe",
+  "slim_sha256": "7f99bad668609a5983dc60381cf947d692f9460d1a25134fda7c30e1921a1023",
+  "initial_uv_sha256": {
+    "Cow": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0"
+  }
+}

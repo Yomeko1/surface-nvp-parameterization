@@ -1,0 +1,11 @@
+{
+  "input": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\input\\NefertitiFace\\NefertitiFace.usda",
+  "output": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\output\\v2_1_small\\NefertitiFace\\slim\\NefertitiFace_slim.usda",
+  "executable": "F:\\Juyong_Zhang\\1\\try\\CODE\\build\\slim_runner\\Release\\surface_nvp_slim.exe",
+  "initial_uv": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\output\\v2_1_small\\NefertitiFace\\initial\\NefertitiFace_initial.usda",
+  "geometry_scale": true,
+  "iters": 20,
+  "boundary": "circle",
+  "prim_path": null,
+  "timeout": null
+}

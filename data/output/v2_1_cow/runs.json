@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "key": "Cow:direct:seed0:429b65c1b155",
+      "dataset": "Cow",
+      "method": "direct",
+      "seed": 0,
+      "run_signature": "429b65c1b1553c938dd6db72155016bf77ade1c9556a6a8d16165ed46ce76269",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 373.87101370000164,
+      "metrics": "data\\output\\v2_1_cow\\Cow\\direct\\Cow_direct.metrics.json",
+      "metrics_sha256": "cd72abff3ac1cfe654b4b108c7341104b50aa2bb314a141e9bd2a1a75379a7e1",
+      "finished_at": "2026-08-17T00:06:55.462229+00:00"
+    },
+    {
+      "key": "Cow:affine:seed0:429b65c1b155",
+      "dataset": "Cow",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "429b65c1b1553c938dd6db72155016bf77ade1c9556a6a8d16165ed46ce76269",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 389.5810686999903,
+      "metrics": "data\\output\\v2_1_cow\\Cow\\affine\\Cow_affine.metrics.json",
+      "metrics_sha256": "1e1a8755bde06a0f6a8f3d939366ad6cc753ac2622b8ad95370b9886cc496abe",
+      "finished_at": "2026-08-17T00:13:25.049272+00:00"
+    },
+    {
+      "key": "Cow:spline:seed0:429b65c1b155",
+      "dataset": "Cow",
+      "method": "spline",
+      "seed": 0,
+      "run_signature": "429b65c1b1553c938dd6db72155016bf77ade1c9556a6a8d16165ed46ce76269",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 450.17833360000805,
+      "metrics": "data\\output\\v2_1_cow\\Cow\\spline\\Cow_spline.metrics.json",
+      "metrics_sha256": "9f4a06a169bfb8f017deeb11d6a81e86f7dc1e86a00452670ba082a7800d8099",
+      "finished_at": "2026-08-17T00:20:55.231997+00:00"
+    },
+    {
+      "key": "Cow:slim:seed0:429b65c1b155",
+      "dataset": "Cow",
+      "method": "slim",
+      "seed": 0,
+      "run_signature": "429b65c1b1553c938dd6db72155016bf77ade1c9556a6a8d16165ed46ce76269",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 1,
+      "wall_elapsed_seconds": 107.95336060000409,
+      "metrics": "data\\output\\v2_1_cow\\Cow\\slim\\Cow_slim.metrics.json",
+      "metrics_sha256": "761dba5d9be86cf0d97b913c8cf49834c78456a39d8143e06f7a6f253c5f2669",
+      "finished_at": "2026-08-17T00:22:43.188152+00:00"
+    }
+  ]
+}

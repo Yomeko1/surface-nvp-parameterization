@@ -1,0 +1,2 @@
+data/output/v2_1_*/** -text whitespace=cr-at-eol
+data/output/v2_1_*/**/*.usda -diff

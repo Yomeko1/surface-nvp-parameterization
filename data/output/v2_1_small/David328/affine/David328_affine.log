@@ -1,0 +1,7 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\train_injective_nvp.py --config F:\Juyong_Zhang\1\try\CODE\configs\default.yaml --input F:\Juyong_Zhang\1\try\CODE\data\input\David328\David328.usda --initial-uv F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_small\David328\initial\David328_initial.usda --output F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_small\David328\affine\David328_affine.usda --geometry-scale --seed 0 --iters 1000 --check-interval 25 --device cuda --validation-device cuda --intersection-batch-size 65536 --coupling-type affine
+
+STDOUT:
+initial {'num_flipped': 0, 'min_signed_area': 0.0015429302974062818, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+final {'num_flipped': 0, 'min_signed_area': 0.004557520616799593, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:

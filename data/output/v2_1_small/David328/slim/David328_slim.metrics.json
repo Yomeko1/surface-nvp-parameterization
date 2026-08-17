@@ -1,0 +1,80 @@
+{
+  "initial": {
+    "injectivity": {
+      "num_flipped": 0,
+      "min_signed_area": 0.0015429302974062818,
+      "num_nonfinite": 0,
+      "num_intersections": 0,
+      "intersections": [],
+      "is_valid": true
+    },
+    "distortion": {
+      "symmetric_dirichlet_mean": 34.694400787353516,
+      "symmetric_dirichlet_area_weighted_mean": 28.409904139347297,
+      "symmetric_dirichlet_median": 11.592694282531738,
+      "symmetric_dirichlet_p90": 105.57562255859375,
+      "symmetric_dirichlet_p95": 145.427978515625,
+      "symmetric_dirichlet_p99": 243.545654296875,
+      "symmetric_dirichlet_max": 698.5292358398438,
+      "uv_area_min": 0.0015429302974062818,
+      "uv_area_mean": 2.072816098597682,
+      "uv_area_max": 37.130868747296326,
+      "normalized_uv_area_min": 0.0007443642966928505,
+      "area_ratio_min": 0.01260675007250495,
+      "area_ratio_mean": 9.190929396227153,
+      "area_ratio_max": 111.81848189024677,
+      "edge_length_ratio_min": 0.12318355088860485,
+      "edge_length_ratio_mean": 1.9816396852417808,
+      "edge_length_ratio_max": 13.8072346187459,
+      "scaled_edge_length_ratio_min": 0.13269698763455307,
+      "scaled_edge_length_ratio_mean": 2.1346812533960913,
+      "scaled_edge_length_ratio_max": 14.873564110259663,
+      "angle_distortion_mean_deg": 20.997121710634236,
+      "angle_distortion_p95_deg": 53.75168057564068,
+      "angle_distortion_max_deg": 111.67839684565686
+    }
+  },
+  "final": {
+    "injectivity": {
+      "num_flipped": 0,
+      "min_signed_area": 0.018545503690476695,
+      "num_nonfinite": 0,
+      "num_intersections": 0,
+      "intersections": [],
+      "is_valid": true
+    },
+    "distortion": {
+      "symmetric_dirichlet_mean": 7.397692680358887,
+      "symmetric_dirichlet_area_weighted_mean": 7.237717409461377,
+      "symmetric_dirichlet_median": 5.938971519470215,
+      "symmetric_dirichlet_p90": 12.249216079711914,
+      "symmetric_dirichlet_p95": 16.866348266601562,
+      "symmetric_dirichlet_p99": 21.426328659057617,
+      "symmetric_dirichlet_max": 33.65790557861328,
+      "uv_area_min": 0.018545503690476695,
+      "uv_area_mean": 0.29338143262801886,
+      "uv_area_max": 3.650880323123309,
+      "normalized_uv_area_min": 0.06321294270176503,
+      "area_ratio_min": 0.23368862368771576,
+      "area_ratio_mean": 1.019114196013846,
+      "area_ratio_max": 6.1817275757090755,
+      "edge_length_ratio_min": 0.43661889031858353,
+      "edge_length_ratio_mean": 1.104942446702449,
+      "edge_length_ratio_max": 5.424305969895964,
+      "scaled_edge_length_ratio_min": 0.5194279663010916,
+      "scaled_edge_length_ratio_mean": 1.3145056723304513,
+      "scaled_edge_length_ratio_max": 6.453079060509923,
+      "angle_distortion_mean_deg": 19.291699015087286,
+      "angle_distortion_p95_deg": 54.10659194014664,
+      "angle_distortion_max_deg": 105.89505599800978
+    }
+  },
+  "training": {
+    "selected_checkpoint": "slim_final_iteration",
+    "selected_iteration": 20,
+    "elapsed_seconds": 0.11671810000552796,
+    "stdout": "SLIM energy: 14.4777\n",
+    "stderr": ""
+  },
+  "history": []
+}

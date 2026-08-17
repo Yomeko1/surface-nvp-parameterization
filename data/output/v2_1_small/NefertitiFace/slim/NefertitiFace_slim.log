@@ -1,0 +1,7 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\run_slim.py --input F:\Juyong_Zhang\1\try\CODE\data\input\NefertitiFace\NefertitiFace.usda --initial-uv F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_small\NefertitiFace\initial\NefertitiFace_initial.usda --output F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_small\NefertitiFace\slim\NefertitiFace_slim.usda --geometry-scale --executable F:\Juyong_Zhang\1\try\CODE\build\slim_runner\Release\surface_nvp_slim.exe --iters 20
+
+STDOUT:
+initial {'num_flipped': 0, 'min_signed_area': 0.0037910122498877492, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+final {'num_flipped': 0, 'min_signed_area': 0.00559184733262944, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:

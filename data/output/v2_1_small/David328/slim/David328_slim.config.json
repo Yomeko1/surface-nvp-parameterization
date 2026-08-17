@@ -1,0 +1,11 @@
+{
+  "input": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\input\\David328\\David328.usda",
+  "output": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\output\\v2_1_small\\David328\\slim\\David328_slim.usda",
+  "executable": "F:\\Juyong_Zhang\\1\\try\\CODE\\build\\slim_runner\\Release\\surface_nvp_slim.exe",
+  "initial_uv": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\output\\v2_1_small\\David328\\initial\\David328_initial.usda",
+  "geometry_scale": true,
+  "iters": 20,
+  "boundary": "circle",
+  "prim_path": null,
+  "timeout": null
+}

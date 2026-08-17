@@ -117,6 +117,15 @@ rows; invalid method outputs are retained and marked as failed rather than
 reported as successful. Resume is allowed only when the Git state, config hash,
 datasets, methods, and run parameters match the existing manifest.
 
+The formal seed-0 v2.1 outputs are stored in `data/output/v2_1_balls/`,
+`data/output/v2_1_small/`, and `data/output/v2_1_cow/`. Their compatible
+five-mesh summary and component hashes are in `data/output/v2_1_all/`. Rebuild
+the merged summary without modifying the original run artifacts with:
+
+```bash
+python scripts/merge_benchmark_summaries.py --inputs data/output/v2_1_balls data/output/v2_1_small data/output/v2_1_cow --output-root data/output/v2_1_all
+```
+
 Diagnose whether an NVP architecture can represent a known target UV map:
 
 ```bash
