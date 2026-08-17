@@ -1,0 +1,74 @@
+{
+  "created_at": "2026-08-17T01:31:16.979429+00:00",
+  "run_signature": "40225c3a286fc4b027cce440e82a52ba8b5ff659b2598674ed4d89713d96ea2c",
+  "git_commit": "9e2a65e8b3aac6af785c360005bfaa41dab00c45",
+  "git_status": [],
+  "python": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+  "platform": "Windows-11-10.0.26100-SP0",
+  "packages": {
+    "numpy": "2.4.4",
+    "scipy": "1.16.3",
+    "torch": "2.11.0+cu128",
+    "matplotlib": "3.10.7",
+    "PyYAML": "6.0.3",
+    "nflows": "0.14",
+    "usd-core": "26.5"
+  },
+  "torch_cuda": "12.8",
+  "cudnn": 91900,
+  "gpu": "NVIDIA GeForce RTX 3070 Ti Laptop GPU",
+  "gpu_driver": "610.62",
+  "source_sha256": "e98cb32b3dccea15f2ae040c500bccb541ab21e2a8be07debdb427cc0a4f2574",
+  "output_root": "data\\output\\v2_1_multiseed",
+  "datasets": {
+    "Balls": {
+      "path": "data\\input\\Balls\\Balls.obj",
+      "sha256": "f6a2bb5d36e9e002709cf1f7d8b112fecd71d78a51db2496265fe4b479e441fc"
+    },
+    "David328": {
+      "path": "data\\input\\David328\\David328.usda",
+      "sha256": "e5086bfad070260f357ade41ca60527a634f453535de108d407f385bee2435b4"
+    },
+    "NefertitiFace": {
+      "path": "data\\input\\NefertitiFace\\NefertitiFace.usda",
+      "sha256": "ad66c675fe563bdbc88a26c752e12c74468354e923a00c7eab948e05254feaed"
+    },
+    "Isis": {
+      "path": "data\\input\\Isis\\Isis_dABF.usda",
+      "sha256": "66c307a9323b421198cc04712b50627efec3880fd0ec1c982fcdf65c36328c7c"
+    },
+    "Cow": {
+      "path": "data\\input\\Cow\\Cow_dABF.usda",
+      "sha256": "8daf3a4dd0e614a2d5f332375ed9a1950e54b10f752a842e1b0ab726d8ea70e0"
+    }
+  },
+  "methods": [
+    "affine",
+    "spline"
+  ],
+  "seeds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "iters": 1000,
+  "slim_iters": 20,
+  "check_interval": 25,
+  "device": "cuda",
+  "validation_device": "cuda",
+  "intersection_batch_size": 65536,
+  "config": "configs\\default.yaml",
+  "config_sha256": "eac97bfc726fd468d039f38661d5327287a8ff0dcac2fdfc0fb655c9bd25b338",
+  "geometry_scale": true,
+  "slim_executable": null,
+  "slim_sha256": null,
+  "initial_uv_sha256": {
+    "Balls": "8d90942b51805fd20c26f2770754a0bd86f302a8c7ba30ad7c6c182d08ca81f5",
+    "David328": "d2b703fbcc9955aef10e1b5eccee870a92f17493b467a98825b167c0e80245a2",
+    "NefertitiFace": "b5a0b4883bba3203dbf9843d7a95f0bf7df40cb6908e2283da4c78343307492d",
+    "Isis": "e4f0cacdab1af93900e6e570be8fc0f91392d9c132d29e2ee0fa4a5e285a6081",
+    "Cow": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0"
+  }
+}

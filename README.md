@@ -134,6 +134,10 @@ the merged summary without modifying the original run artifacts with:
 python scripts/merge_benchmark_summaries.py --inputs data/output/v2_1_balls data/output/v2_1_small data/output/v2_1_cow --output-root data/output/v2_1_all
 ```
 
+The formal Affine/Spline seeds 0-4 matrix is stored in
+`data/output/v2_1_multiseed/`, including all meshes, diagnostics, raw metrics,
+run hashes, `statistics.csv`, and paired `paired.csv` comparisons.
+
 Diagnose whether an NVP architecture can represent a known target UV map:
 
 ```bash

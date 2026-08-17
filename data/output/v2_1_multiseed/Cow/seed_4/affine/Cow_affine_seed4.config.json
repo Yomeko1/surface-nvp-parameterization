@@ -1,0 +1,35 @@
+{
+  "init": {
+    "method": "tutte",
+    "boundary": "circle",
+    "geometry_scale": true,
+    "initial_uv": "F:\\Juyong_Zhang\\1\\try\\CODE\\data\\output\\v2_1_multiseed\\Cow\\initial\\Cow_initial.usda"
+  },
+  "model": {
+    "coupling_type": "affine",
+    "num_layers": 6,
+    "hidden_dim": 64,
+    "mlp_layers": 3,
+    "s_clamp": 2.0,
+    "spline_bins": 8,
+    "spline_bound": 1.1
+  },
+  "train": {
+    "seed": 4,
+    "iters": 1000,
+    "lr": 0.001,
+    "check_interval": 25,
+    "plateau_patience": 4,
+    "lr_decay": 0.5,
+    "min_lr": 1e-06,
+    "boundary_weight": 0.0,
+    "identity_weight": 0.001,
+    "area_weight": 100.0,
+    "device": "cuda",
+    "validation_device": "cuda",
+    "intersection_batch_size": 65536
+  },
+  "io": {
+    "prim_path": null
+  }
+}

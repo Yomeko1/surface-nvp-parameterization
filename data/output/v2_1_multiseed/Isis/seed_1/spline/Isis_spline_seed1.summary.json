@@ -1,0 +1,21 @@
+{
+  "method": "nvp_spline",
+  "iters": 1000,
+  "selected_iteration": 1000,
+  "valid": true,
+  "num_flipped": 0,
+  "num_nonfinite": 0,
+  "num_intersections": 0,
+  "min_signed_area": 9.862885053735226e-05,
+  "symmetric_dirichlet_mean": 6.019851207733154,
+  "symmetric_dirichlet_area_weighted_mean": 5.514621450522402,
+  "symmetric_dirichlet_p95": 11.180929183959961,
+  "symmetric_dirichlet_p99": 17.73299789428711,
+  "symmetric_dirichlet_max": 84.16361999511719,
+  "angle_distortion_mean_deg": 16.03701670415791,
+  "angle_distortion_p95_deg": 48.35108724984907,
+  "angle_distortion_max_deg": 101.4412710219563,
+  "normalized_uv_area_min": 0.04910280928015709,
+  "initial_symmetric_dirichlet_mean": 15.866033554077148,
+  "initial_symmetric_dirichlet_max": 1508.113037109375
+}

@@ -1,0 +1,6 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\init_uv.py --input F:\Juyong_Zhang\1\try\CODE\data\input\Isis\Isis_dABF.usda --output F:\Juyong_Zhang\1\try\CODE\data\output\v2_1_multiseed\Isis\initial\Isis_initial.usda --method tutte --boundary circle --geometry-scale
+
+STDOUT:
+{'num_flipped': 0, 'min_signed_area': 4.10982752634004e-05, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:
