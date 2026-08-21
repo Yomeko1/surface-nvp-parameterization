@@ -43,6 +43,11 @@ def main() -> None:
     parser.add_argument("--iters", type=int, default=1000)
     parser.add_argument("--slim-iters", type=int, default=20)
     parser.add_argument("--check-interval", type=int, default=25)
+    parser.add_argument("--num-layers", type=int, default=None)
+    parser.add_argument("--hidden-dim", type=int, default=None)
+    parser.add_argument("--mlp-layers", type=int, default=None)
+    parser.add_argument("--spline-bins", type=int, default=None)
+    parser.add_argument("--global-transform", action="store_true", default=False)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--validation-device", default="cuda")
     parser.add_argument("--intersection-batch-size", type=int, default=65536)
@@ -232,6 +237,18 @@ def _method_command(
     ]
     if method in {"affine", "spline"}:
         command.extend(["--coupling-type", method])
+        model_overrides = []
+        if args.num_layers is not None:
+            model_overrides.extend(["--num-layers", str(args.num_layers)])
+        if args.hidden_dim is not None:
+            model_overrides.extend(["--hidden-dim", str(args.hidden_dim)])
+        if args.mlp_layers is not None:
+            model_overrides.extend(["--mlp-layers", str(args.mlp_layers)])
+        if args.spline_bins is not None:
+            model_overrides.extend(["--spline-bins", str(args.spline_bins)])
+        if args.global_transform:
+            model_overrides.append("--global-transform")
+        command.extend(model_overrides)
     return command
 
 
@@ -373,6 +390,11 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         "iters": args.iters,
         "slim_iters": args.slim_iters,
         "check_interval": args.check_interval,
+        "num_layers": args.num_layers,
+        "hidden_dim": args.hidden_dim,
+        "mlp_layers": args.mlp_layers,
+        "spline_bins": args.spline_bins,
+        "global_transform": args.global_transform,
         "device": args.device,
         "validation_device": args.validation_device,
         "intersection_batch_size": args.intersection_batch_size,
@@ -399,6 +421,11 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         "iters": args.iters,
         "slim_iters": args.slim_iters,
         "check_interval": args.check_interval,
+        "num_layers": args.num_layers,
+        "hidden_dim": args.hidden_dim,
+        "mlp_layers": args.mlp_layers,
+        "spline_bins": args.spline_bins,
+        "global_transform": args.global_transform,
         "device": args.device,
         "validation_device": args.validation_device,
         "intersection_batch_size": args.intersection_batch_size,

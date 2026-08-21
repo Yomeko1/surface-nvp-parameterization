@@ -14,8 +14,9 @@ DEFAULT_CONFIG = {
         "hidden_dim": 64,
         "mlp_layers": 3,
         "s_clamp": 2.0,
-        "spline_bins": 8,
+        "spline_bins": 16,
         "spline_bound": 1.1,
+        "global_transform": True,
     },
     "train": {
         "seed": 0,
@@ -65,6 +66,7 @@ NVP_OVERRIDE_PATHS = {
     "s_clamp": ("model", "s_clamp"),
     "spline_bins": ("model", "spline_bins"),
     "spline_bound": ("model", "spline_bound"),
+    "global_transform": ("model", "global_transform"),
 }
 
 

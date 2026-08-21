@@ -42,6 +42,8 @@ def main() -> None:
     parser.add_argument("--s-clamp", type=float, default=None)
     parser.add_argument("--spline-bins", type=int, default=None)
     parser.add_argument("--spline-bound", type=float, default=None)
+    parser.add_argument("--global-transform", action=argparse.BooleanOptionalAction, default=None,
+                        help="add learnable global scale+translation (e.g. for capacity-matched affine)")
     parser.add_argument("--iters", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--check-interval", type=int, default=None)
@@ -104,6 +106,7 @@ def main() -> None:
         s_clamp=model_config["s_clamp"],
         spline_bins=model_config["spline_bins"],
         spline_bound=model_config["spline_bound"],
+        global_transform=model_config["global_transform"],
         seed=train_config["seed"],
         return_info=True,
     )

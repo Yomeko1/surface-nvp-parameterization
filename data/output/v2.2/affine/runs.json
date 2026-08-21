@@ -1,0 +1,69 @@
+{
+  "runs": [
+    {
+      "key": "Balls:affine:seed0:e3f700b01446",
+      "dataset": "Balls",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "e3f700b0144653932b81368d0ea18da72d52c723749a0c361c732197cb425c5c",
+      "initial_uv_sha256": "8d90942b51805fd20c26f2770754a0bd86f302a8c7ba30ad7c6c182d08ca81f5",
+      "returncode": 0,
+      "wall_elapsed_seconds": 35.048551200015936,
+      "metrics": "data\\output\\v2.2\\affine\\Balls\\affine\\Balls_affine.metrics.json",
+      "metrics_sha256": "cb2b9460b5289de638a83735eb0df3c0ca41ac4b5fda75563ea856449f0284a8",
+      "finished_at": "2026-08-20T17:14:46.805665+00:00"
+    },
+    {
+      "key": "David328:affine:seed0:e3f700b01446",
+      "dataset": "David328",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "e3f700b0144653932b81368d0ea18da72d52c723749a0c361c732197cb425c5c",
+      "initial_uv_sha256": "d2b703fbcc9955aef10e1b5eccee870a92f17493b467a98825b167c0e80245a2",
+      "returncode": 0,
+      "wall_elapsed_seconds": 26.93862010000157,
+      "metrics": "data\\output\\v2.2\\affine\\David328\\affine\\David328_affine.metrics.json",
+      "metrics_sha256": "c74c4d23ee13abc6cc58c575f272ae17e5e6f65b2b2f8575a203426f36d5309b",
+      "finished_at": "2026-08-20T17:15:17.979858+00:00"
+    },
+    {
+      "key": "NefertitiFace:affine:seed0:e3f700b01446",
+      "dataset": "NefertitiFace",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "e3f700b0144653932b81368d0ea18da72d52c723749a0c361c732197cb425c5c",
+      "initial_uv_sha256": "b5a0b4883bba3203dbf9843d7a95f0bf7df40cb6908e2283da4c78343307492d",
+      "returncode": 0,
+      "wall_elapsed_seconds": 25.68632959999377,
+      "metrics": "data\\output\\v2.2\\affine\\NefertitiFace\\affine\\NefertitiFace_affine.metrics.json",
+      "metrics_sha256": "7b13f039c1e3c43dd197d403a06503aeed2b83ff5076d4e4450af73eda626d26",
+      "finished_at": "2026-08-20T17:15:47.292015+00:00"
+    },
+    {
+      "key": "Isis:affine:seed0:e3f700b01446",
+      "dataset": "Isis",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "e3f700b0144653932b81368d0ea18da72d52c723749a0c361c732197cb425c5c",
+      "initial_uv_sha256": "e4f0cacdab1af93900e6e570be8fc0f91392d9c132d29e2ee0fa4a5e285a6081",
+      "returncode": 0,
+      "wall_elapsed_seconds": 30.187815800018143,
+      "metrics": "data\\output\\v2.2\\affine\\Isis\\affine\\Isis_affine.metrics.json",
+      "metrics_sha256": "01cb9d4a76d8c8135cc73350047381567595551e55f108090c23255f5754ee7c",
+      "finished_at": "2026-08-20T17:16:21.596870+00:00"
+    },
+    {
+      "key": "Cow:affine:seed0:e3f700b01446",
+      "dataset": "Cow",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "e3f700b0144653932b81368d0ea18da72d52c723749a0c361c732197cb425c5c",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 389.8294173000031,
+      "metrics": "data\\output\\v2.2\\affine\\Cow\\affine\\Cow_affine.metrics.json",
+      "metrics_sha256": "5a5c5600474c3b5ae235217e5ae3712b55ed0ef816cd03202b6dcac3cf6dd7d9",
+      "finished_at": "2026-08-20T17:23:45.054927+00:00"
+    }
+  ]
+}

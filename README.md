@@ -311,4 +311,4 @@ The method preserves injectivity best when the initial UV is already valid. Tutt
 
 The legacy directories in `data/output/v1/` are the formal v1 affine-NVP and direct-UV runs for five meshes. They are retained as historical baselines. `data/output/v2.1/seed0/` contains the clean, shared-scale v2.1 comparison for Direct UV, Affine-NVP, Spline-NVP, and SLIM.
 
-See `v2.1.md` for the exact v2.1 snapshot status, verification record, and known limitations. Git tags identify the release rollback points.
+See `v2.2.md` for the exact v2.1 snapshot status, verification record, the v2.2 Affine/Spline fairness ablation, and known limitations. Git tags identify the release rollback points.

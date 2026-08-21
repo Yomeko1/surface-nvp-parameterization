@@ -9,8 +9,9 @@ model:
   hidden_dim: 64
   mlp_layers: 3
   s_clamp: 2.0
-  spline_bins: 8
+  spline_bins: 16
   spline_bound: 1.1
+  global_transform: true
 train:
   seed: 0
   iters: 1000

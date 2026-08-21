@@ -1,0 +1,6 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\init_uv.py --input F:\Juyong_Zhang\1\try\CODE\data\input\Cow\Cow_dABF.usda --output F:\Juyong_Zhang\1\try\CODE\data\output\v2.2\affine_cap\Cow\initial\Cow_initial.usda --method tutte --boundary circle --geometry-scale
+
+STDOUT:
+{'num_flipped': 0, 'min_signed_area': 5.930089042296003e-08, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:

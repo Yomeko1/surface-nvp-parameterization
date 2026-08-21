@@ -19,13 +19,17 @@ def _local_2d(vertices: torch.Tensor, faces: torch.Tensor) -> torch.Tensor:
     return out
 
 
-def symmetric_dirichlet_per_face(vertices: torch.Tensor, faces: torch.Tensor, uv: torch.Tensor) -> torch.Tensor:
+def jacobian_singular_values(vertices: torch.Tensor, faces: torch.Tensor, uv: torch.Tensor) -> torch.Tensor:
     x = _local_2d(vertices, faces)
     u = uv[faces]
     dx = torch.stack([x[:, 1] - x[:, 0], x[:, 2] - x[:, 0]], dim=-1)
     du = torch.stack([u[:, 1] - u[:, 0], u[:, 2] - u[:, 0]], dim=-1)
     j = du @ torch.linalg.inv(dx)
-    singular_values = torch.linalg.svdvals(j)
+    return torch.linalg.svdvals(j)
+
+
+def symmetric_dirichlet_per_face(vertices: torch.Tensor, faces: torch.Tensor, uv: torch.Tensor) -> torch.Tensor:
+    singular_values = jacobian_singular_values(vertices, faces, uv)
     inverse_singular_values = (singular_values + 1e-4).reciprocal()
     return (singular_values.pow(2) + inverse_singular_values.pow(2)).sum(dim=-1)
 

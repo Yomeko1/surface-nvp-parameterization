@@ -4,7 +4,7 @@ import numpy as np
 import torch
 
 from surface_nvp.injectivity.validators import validate_uv, validate_uv_torch
-from surface_nvp.losses.distortion import symmetric_dirichlet_per_face
+from surface_nvp.losses.distortion import jacobian_singular_values, symmetric_dirichlet_per_face
 
 
 def _triangle_angles(edge_lengths: np.ndarray) -> np.ndarray:
@@ -47,6 +47,11 @@ def compute_distortion_metrics(vertices: np.ndarray, faces: np.ndarray, uv: np.n
     f_t = torch.as_tensor(faces, dtype=torch.long)
     uv_t = torch.as_tensor(uv, dtype=torch.float32)
     per_face = symmetric_dirichlet_per_face(v_t, f_t, uv_t).detach().cpu().numpy()
+    sv = jacobian_singular_values(v_t, f_t, uv_t).detach().cpu().numpy()
+    sv_max = sv.max(axis=1)
+    sv_min = sv.min(axis=1)
+    sv_cond = sv_max / np.maximum(sv_min, 1e-12)
+    sv_cond = np.where(sv_min > 1e-12, sv_cond, np.inf)
 
     tri3 = vertices[faces]
     len3 = _edge_lengths(tri3)
@@ -88,4 +93,16 @@ def compute_distortion_metrics(vertices: np.ndarray, faces: np.ndarray, uv: np.n
         "angle_distortion_mean_deg": float(np.mean(angle_diff)),
         "angle_distortion_p95_deg": float(np.percentile(angle_diff, 95)),
         "angle_distortion_max_deg": float(np.max(angle_diff)),
+        "stretch_max_mean": float(np.mean(sv_max)),
+        "stretch_max_area_weighted_mean": float(np.sum(sv_max * area_weights)),
+        "stretch_max_p95": float(np.percentile(sv_max, 95)),
+        "stretch_max_max": float(np.max(sv_max)),
+        "condition_number_mean": float(np.mean(sv_cond[np.isfinite(sv_cond)]) if np.any(np.isfinite(sv_cond)) else np.inf),
+        "condition_number_area_weighted_mean": float(
+            np.sum(sv_cond[np.isfinite(sv_cond)] * area_weights[np.isfinite(sv_cond)])
+            / max(float(area_weights[np.isfinite(sv_cond)].sum()), 1e-12)
+            if np.any(np.isfinite(sv_cond))
+            else np.inf
+        ),
+        "condition_number_p95": float(np.percentile(sv_cond[np.isfinite(sv_cond)], 95) if np.any(np.isfinite(sv_cond)) else np.inf),
     }

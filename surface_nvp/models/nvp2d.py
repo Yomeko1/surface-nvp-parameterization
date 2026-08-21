@@ -20,6 +20,7 @@ class NVP2D(nn.Module):
         coupling_type: str = "affine",
         spline_bins: int = 8,
         spline_bound: float = 1.1,
+        global_transform: bool = False,
     ):
         super().__init__()
         numeric_values = (num_layers, hidden_dim, mlp_layers, s_clamp, spline_bins, spline_bound)
@@ -58,7 +59,7 @@ class NVP2D(nn.Module):
         self.spline_bound = spline_bound
         self.register_buffer("domain_center", torch.zeros(2))
         self.register_buffer("domain_scale", torch.ones(2))
-        if coupling_type == "spline":
+        if coupling_type == "spline" or global_transform:
             self.global_log_scale = nn.Parameter(torch.zeros(2))
             self.global_translation = nn.Parameter(torch.zeros(2))
         else:

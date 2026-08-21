@@ -4,4 +4,4 @@
 - `multiseed/`: Affine-NVP and Spline-NVP results for seeds 0-4, including raw
   summaries, aggregate statistics, and paired comparisons.
 
-See the repository-level `v2.1.md` for the result tables and interpretation.
+See the repository-level `v2.2.md` (which retains the v2.1 snapshot) for the result tables and interpretation.

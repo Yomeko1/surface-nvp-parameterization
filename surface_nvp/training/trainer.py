@@ -35,6 +35,7 @@ def train_nvp(
     s_clamp: float = 2.0,
     spline_bins: int = 8,
     spline_bound: float = 1.1,
+    global_transform: bool = False,
     return_info: bool = False,
     seed: int = 0,
     plateau_patience: int = 4,
@@ -50,6 +51,7 @@ def train_nvp(
         coupling_type=coupling_type,
         spline_bins=spline_bins,
         spline_bound=spline_bound,
+        global_transform=global_transform,
     )
     result = train_parameterization(
         model,
