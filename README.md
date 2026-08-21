@@ -8,7 +8,7 @@ Goal:
 surface mesh -> initial valid UV -> 2D orientation-preserving NVP -> checked UV output
 ```
 
-Version 2.1 supports a focused single-chart setting:
+Version 2.2 supports a focused single-chart setting:
 
 - One triangular mesh.
 - Disk topology with one boundary loop.
@@ -16,11 +16,14 @@ Version 2.1 supports a focused single-chart setting:
 - Deterministic geometry-scale normalization of the shared initial UV.
 - Affine Real-NVP or monotonic rational-quadratic spline deformation of the initial UV.
 - Spline-NVP includes a learnable positive global scale and translation outside the bounded spline domain.
+- Affine can enable the same learnable global scale/translation via `global_transform` (default on since v2.2).
+- Default `spline_bins` is 16 since v2.2 (fairness/bins ablations in `data/output/v2.2/`).
 - A shared optimizer and objective for NVP and direct-UV experiments.
 - Free UV boundaries during optimization; the initial boundary is not pinned.
 - An optional libigl SLIM baseline that starts from the same initial UV.
 - Local flip checks by signed triangle area.
 - Global UV self-intersection checks with rollback to the latest valid checkpoint.
+- Jacobian stretch (`stretch_max_*`) and condition-number (`condition_number_*`) metrics.
 - OBJ I/O by default, optional USD/USDA I/O when `pxr` is installed.
 
 ## Install
@@ -49,10 +52,19 @@ Train NVP:
 python scripts/train_injective_nvp.py --input data/input/mesh.obj --output data/output/final.obj --iters 1000
 ```
 
-Train the more expressive orientation-preserving spline NVP:
+Train the more expressive orientation-preserving spline NVP (default `spline_bins` is 16 since v2.2):
 
 ```bash
-python scripts/train_injective_nvp.py --input data/input/mesh.obj --output data/output/spline.obj --coupling-type spline --spline-bins 8 --iters 1000
+python scripts/train_injective_nvp.py --input data/input/mesh.obj --output data/output/spline.obj --coupling-type spline --iters 1000
+```
+
+The affine NVP enables the learnable global scale/translation by default since v2.2 (`global_transform`). It can be toggled explicitly:
+
+```bash
+# affine with global scale/translation (default, i.e. affine_g)
+python scripts/train_injective_nvp.py --input data/input/mesh.obj --output data/output/affine_g.obj --coupling-type affine --global-transform
+# plain affine without it
+python scripts/train_injective_nvp.py --input data/input/mesh.obj --output data/output/affine.obj --coupling-type affine --no-global-transform
 ```
 
 Train with a YAML config. Command-line arguments override values from the config:
@@ -103,7 +115,7 @@ Summarize multiple runs into a CSV/JSON table:
 python scripts/summarize_metrics.py --inputs data/output/run_a/final.metrics.json data/output/run_b/direct.metrics.json --output data/output/summary.csv
 ```
 
-Run the reproducible five-mesh v2.1 comparison matrix after building SLIM:
+Run the reproducible five-mesh benchmark matrix after building SLIM:
 
 ```bash
 python scripts/run_benchmark.py --output-root data/output/benchmark --seed 0 --iters 1000 --slim-iters 20 --device cuda --validation-device cuda --intersection-batch-size 65536 --slim-executable build/slim_runner/Release/surface_nvp_slim.exe --continue-on-error
@@ -138,6 +150,12 @@ python scripts/merge_benchmark_summaries.py --inputs data/output/v2.1/seed0/ball
 The formal Affine/Spline seeds 0-4 matrix is stored in
 `data/output/v2.1/multiseed/`, including all meshes, diagnostics, raw metrics,
 run hashes, `statistics.csv`, and paired `paired.csv` comparisons.
+
+The v2.2 fairness and bins ablations are stored in `data/output/v2.2/`:
+seed-0 runs of `affine`, `affine_g` (affine + global transform), `affine_cap`
+(capacity-matched affine), and `spline` with `spline_bins = 4 / 8 / 16`. New
+Jacobian metrics `stretch_max_*` (σ_max) and `condition_number_*` (κ) are
+reported there and in `final.metrics.json`. See `data/output/v2.2/README.md`.
 
 Diagnose whether an NVP architecture can represent a known target UV map:
 
@@ -200,7 +218,7 @@ python scripts/train_injective_nvp.py --input scene.usda --prim-path /World/MyMe
 
 ## Input Mesh Requirements
 
-This v2.1 prototype is intended for a simple parameterization setting:
+This v2.2 prototype is intended for a simple parameterization setting:
 
 - A single connected triangular mesh.
 - Disk topology with one clear boundary loop.
@@ -208,7 +226,7 @@ This v2.1 prototype is intended for a simple parameterization setting:
 - Manifold-like connectivity; avoid duplicate faces, broken boundaries, or non-manifold edges.
 - A valid initial UV is required for reliable optimization. If the input has no UV, the default Tutte initialization assumes the mesh has disk topology and a usable boundary.
 
-Closed surfaces without cuts, meshes with multiple boundary loops, and heavily non-manifold meshes are outside the intended v2.1 scope. USD/USDA files with multiple mesh prims should use `--prim-path` to select the target mesh.
+Closed surfaces without cuts, meshes with multiple boundary loops, and heavily non-manifold meshes are outside the intended v2.2 scope. USD/USDA files with multiple mesh prims should use `--prim-path` to select the target mesh.
 
 ## Outputs
 
@@ -248,6 +266,8 @@ The key metrics are:
 - `edge_length_ratio_*`: UV edge length divided by 3D edge length. This is scale-dependent.
 - `scaled_edge_length_ratio_*`: edge length ratios normalized by their median scale, useful for relative stretch.
 - `angle_distortion_mean_deg` and `angle_distortion_max_deg`: per-triangle angle change in degrees.
+- `stretch_max_*` (`mean`, `area_weighted_mean`, `p95`, `max`): maximum Jacobian stretch σ_max = max(σ1, σ2). Lower is better.
+- `condition_number_*` (`mean`, `area_weighted_mean`, `p95`): Jacobian condition number κ = σ_max / σ_min. Lower is better.
 
 Each history entry in `final.metrics.json` records the total loss and split terms:
 
