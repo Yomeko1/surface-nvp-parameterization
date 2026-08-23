@@ -28,8 +28,9 @@ def main() -> None:
     parser.add_argument("--hidden-dim", type=int, default=64)
     parser.add_argument("--mlp-layers", type=int, default=3)
     parser.add_argument("--s-clamp", type=float, default=2.0)
-    parser.add_argument("--spline-bins", type=int, default=8)
+    parser.add_argument("--spline-bins", type=int, default=16)
     parser.add_argument("--spline-bound", type=float, default=1.1)
+    parser.add_argument("--mixing-type", choices=["none", "rotation"], default="none")
     parser.add_argument("--iters", type=int, default=5000)
     parser.add_argument("--lr", type=float, default=1e-3)
     parser.add_argument("--check-interval", type=int, default=100)
@@ -55,6 +56,7 @@ def main() -> None:
         s_clamp=args.s_clamp,
         spline_bins=args.spline_bins,
         spline_bound=args.spline_bound,
+        mixing_type=args.mixing_type,
         iters=args.iters,
         lr=args.lr,
         check_interval=args.check_interval,

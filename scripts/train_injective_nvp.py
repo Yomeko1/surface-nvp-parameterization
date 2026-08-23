@@ -33,8 +33,9 @@ def main() -> None:
     parser.add_argument("--initial-uv", default=None, help="mesh whose UV coordinates are used as the shared initialization")
     parser.add_argument("--geometry-scale", action=argparse.BooleanOptionalAction, default=None)
     parser.add_argument("--seed", type=int, default=None)
-    parser.add_argument("--method", choices=["tutte"], default=None)
+    parser.add_argument("--method", choices=["tutte", "mean_value", "abfpp", "auto"], default=None)
     parser.add_argument("--boundary", choices=["circle", "square"], default=None)
+    parser.add_argument("--abfpp-executable", default=None)
     parser.add_argument("--coupling-type", choices=["affine", "spline"], default=None)
     parser.add_argument("--num-layers", type=int, default=None)
     parser.add_argument("--hidden-dim", type=int, default=None)
@@ -44,12 +45,17 @@ def main() -> None:
     parser.add_argument("--spline-bound", type=float, default=None)
     parser.add_argument("--global-transform", action=argparse.BooleanOptionalAction, default=None,
                         help="add learnable global scale+translation (e.g. for capacity-matched affine)")
+    parser.add_argument("--mixing-type", choices=["none", "rotation"], default=None)
     parser.add_argument("--iters", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
     parser.add_argument("--check-interval", type=int, default=None)
     parser.add_argument("--plateau-patience", type=int, default=None)
     parser.add_argument("--lr-decay", type=float, default=None)
     parser.add_argument("--min-lr", type=float, default=None)
+    parser.add_argument("--lr-schedule", choices=["constant", "cosine"], default=None)
+    parser.add_argument("--lbfgs-iters", type=int, default=None)
+    parser.add_argument("--lbfgs-lr", type=float, default=None)
+    parser.add_argument("--lbfgs-check-interval", type=int, default=None)
     parser.add_argument("--boundary-weight", type=float, default=None, help="deprecated; must be 0")
     parser.add_argument("--identity-weight", type=float, default=None)
     parser.add_argument("--area-weight", type=float, default=None)
@@ -72,6 +78,7 @@ def main() -> None:
         initial_uv_path=init_config["initial_uv"],
         prim_path=io_config["prim_path"],
         geometry_scale=init_config["geometry_scale"],
+        abfpp_executable=init_config["abfpp_executable"],
     )
     initial_metrics = validate_uv(uv0, mesh.faces)
     print("initial", initial_metrics)
@@ -94,6 +101,10 @@ def main() -> None:
         plateau_patience=train_config["plateau_patience"],
         lr_decay=train_config["lr_decay"],
         min_lr=train_config["min_lr"],
+        lr_schedule=train_config["lr_schedule"],
+        lbfgs_iters=train_config["lbfgs_iters"],
+        lbfgs_lr=train_config["lbfgs_lr"],
+        lbfgs_check_interval=train_config["lbfgs_check_interval"],
         boundary_weight=train_config["boundary_weight"],
         identity_weight=train_config["identity_weight"],
         area_weight=train_config["area_weight"],
@@ -107,6 +118,7 @@ def main() -> None:
         spline_bins=model_config["spline_bins"],
         spline_bound=model_config["spline_bound"],
         global_transform=model_config["global_transform"],
+        mixing_type=model_config["mixing_type"],
         seed=train_config["seed"],
         return_info=True,
     )
@@ -146,7 +158,8 @@ def main() -> None:
             "history": history,
         }
         json.dump(payload, f, indent=2)
-    save_run_summary(out, build_run_summary(f"nvp_{model_config['coupling_type']}", train_config["iters"], payload))
+    total_iters = train_config["iters"] + train_config["lbfgs_iters"]
+    save_run_summary(out, build_run_summary(f"nvp_{model_config['coupling_type']}", total_iters, payload))
 
 
 if __name__ == "__main__":

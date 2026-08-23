@@ -1,6 +1,7 @@
 from scripts.run_benchmark import (
     _benchmark_signature,
     _geometry_scale_flag,
+    _global_transform_flag,
     _is_completed_record,
     _missing_summary_row,
     _output_path,
@@ -20,6 +21,11 @@ def test_benchmark_signature_changes_with_configuration():
 def test_geometry_scale_flag_matches_policy():
     assert _geometry_scale_flag(True) == "--geometry-scale"
     assert _geometry_scale_flag(False) == "--no-geometry-scale"
+
+
+def test_global_transform_flag_matches_effective_configuration():
+    assert _global_transform_flag(True) == "--global-transform"
+    assert _global_transform_flag(False) == "--no-global-transform"
 
 
 def test_multi_seed_output_paths_do_not_collide(tmp_path):

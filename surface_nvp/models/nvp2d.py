@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 
 from .coupling2d import CouplingLayer2D
+from .rotation2d import RotationLayer2D
 from .spline_coupling2d import SplineCouplingLayer2D
 
 
@@ -18,9 +19,10 @@ class NVP2D(nn.Module):
         mlp_layers: int = 3,
         s_clamp: float = 2.0,
         coupling_type: str = "affine",
-        spline_bins: int = 8,
+        spline_bins: int = 16,
         spline_bound: float = 1.1,
-        global_transform: bool = False,
+        global_transform: bool = True,
+        mixing_type: str = "none",
     ):
         super().__init__()
         numeric_values = (num_layers, hidden_dim, mlp_layers, s_clamp, spline_bins, spline_bound)
@@ -55,7 +57,16 @@ class NVP2D(nn.Module):
         else:
             raise ValueError("coupling_type must be 'affine' or 'spline'")
         self.layers = nn.ModuleList([make_layer(i) for i in range(num_layers)])
+        if mixing_type == "none":
+            self.mixing_layers = nn.ModuleList()
+        elif mixing_type == "rotation":
+            self.mixing_layers = nn.ModuleList(
+                [RotationLayer2D() for _ in range(max(num_layers - 1, 0))]
+            )
+        else:
+            raise ValueError("mixing_type must be 'none' or 'rotation'")
         self.coupling_type = coupling_type
+        self.mixing_type = mixing_type
         self.spline_bound = spline_bound
         self.register_buffer("domain_center", torch.zeros(2))
         self.register_buffer("domain_scale", torch.ones(2))
@@ -78,12 +89,18 @@ class NVP2D(nn.Module):
     def forward(self, uv: torch.Tensor, return_logdet: bool = False):
         out = (uv - self.domain_center) / self.domain_scale
         logdet = torch.zeros(uv.shape[0], dtype=uv.dtype, device=uv.device)
-        for layer in self.layers:
+        for index, layer in enumerate(self.layers):
             if return_logdet:
                 out, ld = layer(out, return_logdet=True)
                 logdet = logdet + ld
             else:
                 out = layer(out)
+            if index < len(self.mixing_layers):
+                if return_logdet:
+                    out, ld = self.mixing_layers[index](out, return_logdet=True)
+                    logdet = logdet + ld
+                else:
+                    out = self.mixing_layers[index](out)
         out = out * self.domain_scale + self.domain_center
         if self.global_log_scale is not None:
             out = (
@@ -105,6 +122,8 @@ class NVP2D(nn.Module):
                 + self.domain_center
             )
         out = (out - self.domain_center) / self.domain_scale
-        for layer in reversed(self.layers):
-            out = layer.inverse(out)
+        for index in reversed(range(len(self.layers))):
+            if index < len(self.mixing_layers):
+                out = self.mixing_layers[index].inverse(out)
+            out = self.layers[index].inverse(out)
         return out * self.domain_scale + self.domain_center

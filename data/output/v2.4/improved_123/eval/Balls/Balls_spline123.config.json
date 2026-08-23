@@ -1,0 +1,41 @@
+{
+  "init": {
+    "method": "tutte",
+    "boundary": "circle",
+    "geometry_scale": true,
+    "initial_uv": "data/output/v2.4/Balls/Balls/initial/Balls_initial.obj"
+  },
+  "model": {
+    "coupling_type": "spline",
+    "num_layers": 12,
+    "hidden_dim": 128,
+    "mlp_layers": 3,
+    "s_clamp": 2.0,
+    "spline_bins": 32,
+    "spline_bound": 1.1,
+    "global_transform": true,
+    "mixing_type": "rotation"
+  },
+  "train": {
+    "seed": 0,
+    "iters": 1000,
+    "lr": 0.0005,
+    "check_interval": 25,
+    "plateau_patience": 6,
+    "lr_decay": 0.5,
+    "min_lr": 1e-06,
+    "lr_schedule": "cosine",
+    "lbfgs_iters": 20,
+    "lbfgs_lr": 0.25,
+    "lbfgs_check_interval": 5,
+    "boundary_weight": 0.0,
+    "identity_weight": 0.001,
+    "area_weight": 100.0,
+    "device": "cuda",
+    "validation_device": "cuda",
+    "intersection_batch_size": 65536
+  },
+  "io": {
+    "prim_path": null
+  }
+}

@@ -10,6 +10,15 @@ def test_nvp2d_positive_logdet():
     assert torch.isfinite(logdet).all()
 
 
+def test_nvp2d_v24_defaults_enable_global_transform_and_16_spline_bins():
+    affine = NVP2D()
+    spline = NVP2D(coupling_type="spline")
+
+    assert affine.global_log_scale is not None
+    assert affine.global_translation is not None
+    assert spline.layers[0].transform.num_bins == 16
+
+
 def test_spline_nvp_identity_inverse_and_positive_jacobian():
     model = NVP2D(num_layers=4, coupling_type="spline", spline_bins=8)
     uv = torch.rand(12, 2) * 1.8 - 0.9
@@ -61,3 +70,21 @@ def test_spline_global_transform_supports_positive_scaling_and_translation():
     point = uv[0].detach().requires_grad_(True)
     jacobian = torch.autograd.functional.jacobian(lambda x: model(x.unsqueeze(0)).squeeze(0), point)
     assert torch.det(jacobian) > 0.0
+
+
+def test_rotation_mixing_preserves_inverse_and_positive_jacobian():
+    model = NVP2D(num_layers=4, coupling_type="spline", spline_bins=8, mixing_type="rotation")
+    uv = torch.rand(12, 2) * 1.8 - 0.9
+    model.set_domain(uv)
+    with torch.no_grad():
+        for index, mixing in enumerate(model.mixing_layers):
+            mixing.angle.fill_(0.15 * (index + 1))
+
+    mapped, logdet = model(uv, return_logdet=True)
+    recovered = model.inverse(mapped)
+
+    torch.testing.assert_close(recovered, uv, atol=2e-5, rtol=2e-5)
+    point = uv[0].detach().requires_grad_(True)
+    jacobian = torch.autograd.functional.jacobian(lambda x: model(x.unsqueeze(0)).squeeze(0), point)
+    assert torch.det(jacobian) > 0.0
+    torch.testing.assert_close(torch.logdet(jacobian), logdet[0], atol=2e-4, rtol=2e-4)

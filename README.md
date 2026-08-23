@@ -8,11 +8,11 @@ Goal:
 surface mesh -> initial valid UV -> 2D orientation-preserving NVP -> checked UV output
 ```
 
-Version 2.2 supports a focused single-chart setting:
+Version 2.4 supports a focused single-chart setting:
 
 - One triangular mesh.
 - Disk topology with one boundary loop.
-- Tutte circle initialization.
+- Tutte, positive mean-value, optional ABF++, and validated `auto` initialization; Tutte remains the default.
 - Deterministic geometry-scale normalization of the shared initial UV.
 - Affine Real-NVP or monotonic rational-quadratic spline deformation of the initial UV.
 - Spline-NVP includes a learnable positive global scale and translation outside the bounded spline domain.
@@ -23,6 +23,10 @@ Version 2.2 supports a focused single-chart setting:
 - An optional libigl SLIM baseline that starts from the same initial UV.
 - Local flip checks by signed triangle area.
 - Global UV self-intersection checks with rollback to the latest valid checkpoint.
+- Memory-bounded global intersection validation (block-batched) so large meshes
+  (tens of thousands of faces) validate without GPU out-of-memory.
+- Cumulative rollback learning-rate decay, optional cosine Adam and L-BFGS phases.
+- Optional orientation-preserving rotation mixing between coupling layers.
 - Jacobian stretch (`stretch_max_*`) and condition-number (`condition_number_*`) metrics.
 - OBJ I/O by default, optional USD/USDA I/O when `pxr` is installed.
 
@@ -45,6 +49,28 @@ Initialize UV:
 ```bash
 python scripts/init_uv.py --input data/input/mesh.obj --output data/output/init.obj --method tutte
 ```
+
+The fixed-convex-boundary `mean_value` method uses positive Floater weights:
+
+```bash
+python scripts/init_uv.py --input data/input/mesh.obj --output data/output/mean_value.obj --method mean_value
+```
+
+Build the optional OpenABF v2.1.0 wrapper and let `auto` choose the lowest
+area-weighted symmetric Dirichlet candidate among the fully valid Tutte,
+mean-value, and ABF++ results:
+
+```bash
+cmake -S external/abfpp_runner -B build/abfpp_runner
+cmake --build build/abfpp_runner --config Release
+python scripts/init_uv.py --input data/input/mesh.obj --output data/output/auto.obj --method auto --abfpp-executable build/abfpp_runner/Release/surface_nvp_abfpp.exe
+```
+
+Every candidate is geometry-scaled first and then checked for non-finite UVs,
+local flips, and global intersections. An unavailable or invalid ABF++ result is
+discarded by `auto`; Tutte and mean-value remain available as convex-boundary
+fallbacks. Explicit `--method abfpp` fails instead of silently falling back.
+The selected method and all candidate metrics are written to `*.init.json`.
 
 Train NVP:
 
@@ -71,6 +97,13 @@ Train with a YAML config. Command-line arguments override values from the config
 
 ```bash
 python scripts/train_injective_nvp.py --config configs/default.yaml --input data/input/mesh.obj --output data/output/final.obj
+```
+
+The optional 1+2+3 research configuration enables a larger Spline-NVP,
+rotation mixing, cosine Adam, and an L-BFGS phase. It is not the default:
+
+```bash
+python scripts/train_injective_nvp.py --config configs/improved_123.yaml --input data/input/mesh.obj --output data/output/improved.obj
 ```
 
 Train the direct-UV baseline, which optimizes UV vertices directly without the NVP map:
@@ -103,8 +136,8 @@ Run SLIM from the same initial UV:
 python scripts/run_slim.py --input data/input/mesh.obj --initial-uv data/input/shared_init.obj --output data/output/slim.obj --executable build/slim_runner/Release/surface_nvp_slim.exe --iters 20
 ```
 
-If `--initial-uv` is omitted, all three methods use UVs already stored in the
-input mesh, or the same deterministic Tutte initialization when no UV exists.
+If `--initial-uv` is omitted, optimization commands use UVs already stored in
+the input mesh, or the initialization method selected by `init.method` when no UV exists.
 By default, the shared UV is uniformly scaled by
 `1 / sqrt(median(abs(det J)))`; use `--no-geometry-scale` to disable this.
 See `external/slim_runner/README.md` for build and license details.
@@ -129,9 +162,10 @@ python scripts/run_benchmark.py --output-root data/output/multiseed --datasets B
 python scripts/summarize_benchmark_seeds.py --input data/output/multiseed/summary.json --output-root data/output/multiseed
 ```
 
-The benchmark writes one explicit Tutte initialization per mesh, passes that
+The benchmark writes one explicit configured initialization per mesh, passes that
 same file to every method, and supports resuming completed runs. Its manifest
-records the Git revision, source/config/data/binary/initial-UV hashes, package
+records the requested and selected initializer, candidate diagnostics, Git
+revision, source/config/data/binary/initial-UV hashes, package
 versions, GPU, seed or seed list, and effective settings. `summary.csv` and `summary.json` include an initial row and all method
 rows; invalid method outputs are retained and marked as failed rather than
 reported as successful. Resume is allowed only when the Git state, config hash,
@@ -156,6 +190,13 @@ seed-0 runs of `affine`, `affine_g` (affine + global transform), `affine_cap`
 (capacity-matched affine), and `spline` with `spline_bins = 4 / 8 / 16`. New
 Jacobian metrics `stretch_max_*` (σ_max) and `condition_number_*` (κ) are
 reported there and in `final.metrics.json`. See `data/output/v2.2/README.md`.
+
+The v2.4 release archive is stored in `data/output/v2.4/`. It contains the
+six-dataset Tutte-initialized baseline, including the 26408-face `00027` case,
+plus the reduced and full-budget `improved_123` experiments. The new
+mean-value/ABF++/`auto` initializer was validated separately and does not
+retroactively replace those baseline initial UV files. See
+`data/output/v2.4/README.md` and `v2.4.md` for the distinction and full tables.
 
 Diagnose whether an NVP architecture can represent a known target UV map:
 
@@ -218,15 +259,15 @@ python scripts/train_injective_nvp.py --input scene.usda --prim-path /World/MyMe
 
 ## Input Mesh Requirements
 
-This v2.2 prototype is intended for a simple parameterization setting:
+This v2.4 prototype is intended for a simple parameterization setting:
 
 - A single connected triangular mesh.
 - Disk topology with one clear boundary loop.
 - Non-degenerate triangles; avoid zero-area or nearly zero-area faces.
 - Manifold-like connectivity; avoid duplicate faces, broken boundaries, or non-manifold edges.
-- A valid initial UV is required for reliable optimization. If the input has no UV, the default Tutte initialization assumes the mesh has disk topology and a usable boundary.
+- A valid initial UV is required for reliable optimization. Tutte remains the default; `auto` accepts only candidates that pass both local and global v2.4 validation.
 
-Closed surfaces without cuts, meshes with multiple boundary loops, and heavily non-manifold meshes are outside the intended v2.2 scope. USD/USDA files with multiple mesh prims should use `--prim-path` to select the target mesh.
+Closed surfaces without cuts, meshes with multiple boundary loops, and heavily non-manifold meshes are outside the intended v2.4 scope. USD/USDA files with multiple mesh prims should use `--prim-path` to select the target mesh.
 
 ## Outputs
 
@@ -304,14 +345,14 @@ When writing OBJ from an OBJ input, the writer preserves common display data whe
 surface_nvp/
   io/              mesh data, OBJ and optional USD readers/writers
   geometry/        topology and boundary extraction
-  init_param/      shared initial-UV loading and Tutte initialization
+  init_param/      Tutte, mean-value, ABF++, and validated auto initialization
   models/          direct UV, affine coupling, and spline coupling models
   losses/          weighted distortion, Jacobian barrier, and regularization
   injectivity/     signed area and triangle intersection validation
   training/        shared config, trainer, metrics, summaries, and rollback
   visualization/   simple UV plotting/export helpers
 scripts/
-  init_uv.py                 generate a Tutte initialization
+  init_uv.py                 generate and validate an initialization
   train_direct_uv.py         direct-vertex optimization baseline
   train_injective_nvp.py     affine or spline NVP optimization
   run_slim.py                optional external SLIM baseline
@@ -320,6 +361,7 @@ scripts/
   check_uv.py                validate an output UV map
   summarize_metrics.py       aggregate run metrics
 external/slim_runner/        minimal libigl SLIM command-line wrapper
+external/abfpp_runner/       optional pinned OpenABF command-line wrapper
 tests/                       loss, initialization, trainer, and NVP tests
 ```
 
@@ -327,8 +369,16 @@ tests/                       loss, initialization, trainer, and NVP tests
 
 The NVP map is orientation-preserving in continuous 2D parameter space because each coupling layer has positive Jacobian determinant. In the discrete mesh, we still validate triangle signed areas and triangle intersections because vertices are mapped and then connected by straight UV edges.
 
-The method preserves injectivity best when the initial UV is already valid. Tutte circle initialization is the default because it is the safest first choice for a disk-topology triangular mesh.
+The method preserves injectivity best when the initial UV is already valid.
+Tutte circle initialization remains the conservative default. ABF++ guarantees
+local validity in its formulation, not global bijectivity under this project's
+definition, so its output is always passed through the v2.4 global intersection
+validator before use. `auto` provides the practical guarantee by rejecting
+invalid candidates and retaining a convex-boundary fallback.
 
 The legacy directories in `data/output/v1/` are the formal v1 affine-NVP and direct-UV runs for five meshes. They are retained as historical baselines. `data/output/v2.1/seed0/` contains the clean, shared-scale v2.1 comparison for Direct UV, Affine-NVP, Spline-NVP, and SLIM.
 
-See `v2.2.md` for the exact v2.1 snapshot status, verification record, the v2.2 Affine/Spline fairness ablation, and known limitations. Git tags identify the release rollback points.
+See `v2.4.md` for the full record: historical v2.1/v2.2 baselines, the
+memory-bounded global validator, 00027 diagnosis, optimizer/model experiments,
+new initialization portfolio, exact defaults, and release verification. Git
+tags identify the release rollback points.

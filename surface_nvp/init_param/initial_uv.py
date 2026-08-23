@@ -9,7 +9,7 @@ from surface_nvp.io import load_mesh
 from surface_nvp.io.mesh_data import MeshData
 from surface_nvp.losses.distortion import jacobian_determinants
 
-from .tutte import tutte_parameterize
+from .selection import generate_initial_uv
 
 
 def resolve_initial_uv(
@@ -19,6 +19,7 @@ def resolve_initial_uv(
     initial_uv_path: str | Path | None = None,
     prim_path: str | None = None,
     geometry_scale: bool = False,
+    abfpp_executable: str | Path | None = None,
 ) -> np.ndarray:
     if initial_uv_path is not None:
         initial_mesh = load_mesh(initial_uv_path, prim_path=prim_path)
@@ -31,13 +32,15 @@ def resolve_initial_uv(
         uv = initial_mesh.uv.copy()
     elif mesh.uv is not None:
         uv = mesh.uv.copy()
-    elif method == "tutte":
-        uv = tutte_parameterize(mesh.vertices, mesh.faces, boundary_mode=boundary_mode)
     else:
-        raise ValueError(f"unsupported init method: {method}")
-    if geometry_scale:
-        uv = normalize_uv_geometry_scale(mesh.vertices, mesh.faces, uv)
-    return uv
+        return generate_initial_uv(
+            mesh,
+            method=method,
+            boundary_mode=boundary_mode,
+            geometry_scale=geometry_scale,
+            abfpp_executable=abfpp_executable,
+        ).uv
+    return normalize_uv_geometry_scale(mesh.vertices, mesh.faces, uv) if geometry_scale else uv
 
 
 def normalize_uv_geometry_scale(vertices: np.ndarray, faces: np.ndarray, uv: np.ndarray) -> np.ndarray:

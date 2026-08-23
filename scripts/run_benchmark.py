@@ -27,6 +27,7 @@ DATASETS = {
     "NefertitiFace": ROOT / "data/input/NefertitiFace/NefertitiFace.usda",
     "Cow": ROOT / "data/input/Cow/Cow_dABF.usda",
     "Isis": ROOT / "data/input/Isis/Isis_dABF.usda",
+    "00027": ROOT / "data/input/00027/Input.obj",
 }
 METHODS = ("direct", "affine", "spline", "slim")
 
@@ -37,6 +38,9 @@ def main() -> None:
     parser.add_argument("--datasets", nargs="+", choices=DATASETS, default=list(DATASETS))
     parser.add_argument("--methods", nargs="+", choices=METHODS, default=list(METHODS))
     parser.add_argument("--config", default="configs/default.yaml")
+    parser.add_argument("--init-method", choices=["tutte", "mean_value", "abfpp", "auto"], default=None)
+    parser.add_argument("--init-boundary", choices=["circle", "square"], default=None)
+    parser.add_argument("--abfpp-executable", default=None)
     seed_group = parser.add_mutually_exclusive_group()
     seed_group.add_argument("--seed", type=int, default=None)
     seed_group.add_argument("--seeds", nargs="+", type=int)
@@ -47,7 +51,13 @@ def main() -> None:
     parser.add_argument("--hidden-dim", type=int, default=None)
     parser.add_argument("--mlp-layers", type=int, default=None)
     parser.add_argument("--spline-bins", type=int, default=None)
-    parser.add_argument("--global-transform", action="store_true", default=False)
+    parser.add_argument("--mixing-type", choices=["none", "rotation"], default=None)
+    parser.add_argument("--global-transform", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--lr-schedule", choices=["constant", "cosine"], default=None)
+    parser.add_argument("--lbfgs-iters", type=int, default=None)
+    parser.add_argument("--lbfgs-lr", type=float, default=None)
+    parser.add_argument("--lbfgs-check-interval", type=int, default=None)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--validation-device", default="cuda")
     parser.add_argument("--intersection-batch-size", type=int, default=65536)
@@ -80,10 +90,33 @@ def main() -> None:
     config_path = (ROOT / args.config).resolve()
     config = load_config(str(config_path))
     geometry_scale = config["init"]["geometry_scale"]
+    args.init_method = args.init_method or config["init"]["method"]
+    args.init_boundary = args.init_boundary or config["init"]["boundary"]
+    configured_abfpp = args.abfpp_executable or config["init"]["abfpp_executable"]
+    abfpp_executable = (ROOT / configured_abfpp).resolve() if configured_abfpp else None
+    if args.init_method == "abfpp" and (abfpp_executable is None or not abfpp_executable.is_file()):
+        parser.error("ABF++ initialization requires --abfpp-executable")
+    for key in ("num_layers", "hidden_dim", "mlp_layers", "spline_bins", "mixing_type", "global_transform"):
+        if getattr(args, key) is None:
+            setattr(args, key, config["model"][key])
+    for key in ("lr", "lr_schedule", "lbfgs_iters", "lbfgs_lr", "lbfgs_check_interval"):
+        if getattr(args, key) is None:
+            setattr(args, key, config["train"][key])
+    if args.lbfgs_iters < 0 or min(args.lr, args.lbfgs_lr, args.lbfgs_check_interval) <= 0:
+        parser.error("learning rates and L-BFGS check interval must be positive; L-BFGS iterations must be non-negative")
     output_root = (ROOT / args.output_root).resolve()
     output_root.mkdir(parents=True, exist_ok=True)
     manifest_path = output_root / "manifest.json"
-    manifest = _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path, geometry_scale)
+    manifest = _manifest(
+        args,
+        seeds,
+        multi_seed,
+        output_root,
+        slim_executable,
+        abfpp_executable,
+        config_path,
+        geometry_scale,
+    )
     existing_manifest = _read_json(manifest_path)
     if existing_manifest is not None and existing_manifest.get("run_signature") != manifest["run_signature"]:
         parser.error("output root belongs to a different benchmark configuration; choose a new directory")
@@ -96,6 +129,7 @@ def main() -> None:
     state = _read_json(state_path, default={"runs": []})
     records = {record["key"]: record for record in state.get("runs", [])}
     initial_hashes = manifest.setdefault("initial_uv_sha256", {})
+    initial_info = manifest.setdefault("initial_uv_info", {})
 
     for dataset in args.datasets:
         input_path = DATASETS[dataset]
@@ -109,8 +143,7 @@ def main() -> None:
                 )
         else:
             initial_path.parent.mkdir(parents=True, exist_ok=True)
-            _run_checked(
-                [
+            init_command = [
                     sys.executable,
                     str(ROOT / "scripts/init_uv.py"),
                     "--input",
@@ -118,17 +151,20 @@ def main() -> None:
                     "--output",
                     str(initial_path),
                     "--method",
-                    "tutte",
+                    args.init_method,
                     "--boundary",
-                    "circle",
+                    args.init_boundary,
                     _geometry_scale_flag(geometry_scale),
-                ],
-                initial_path.with_suffix(".log"),
-            )
+                ]
+            if abfpp_executable is not None:
+                init_command.extend(["--abfpp-executable", str(abfpp_executable)])
+            _run_checked(init_command, initial_path.with_suffix(".log"))
             actual_initial_hash = _sha256_file(initial_path)
             if expected_initial_hash is not None and expected_initial_hash != actual_initial_hash and not args.force:
                 raise RuntimeError(f"regenerated initial UV differs from the manifest: {initial_path}")
             initial_hashes[dataset] = actual_initial_hash
+            info_path = initial_path.with_suffix(".init.json")
+            initial_info[dataset] = _read_json(info_path) if info_path.is_file() else None
             _write_json(manifest_path, manifest)
 
         for seed in seeds:
@@ -228,6 +264,16 @@ def _method_command(
         str(args.iters),
         "--check-interval",
         str(args.check_interval),
+        "--lr",
+        str(args.lr),
+        "--lr-schedule",
+        args.lr_schedule,
+        "--lbfgs-iters",
+        str(args.lbfgs_iters),
+        "--lbfgs-lr",
+        str(args.lbfgs_lr),
+        "--lbfgs-check-interval",
+        str(args.lbfgs_check_interval),
         "--device",
         args.device,
         "--validation-device",
@@ -246,8 +292,8 @@ def _method_command(
             model_overrides.extend(["--mlp-layers", str(args.mlp_layers)])
         if args.spline_bins is not None:
             model_overrides.extend(["--spline-bins", str(args.spline_bins)])
-        if args.global_transform:
-            model_overrides.append("--global-transform")
+        model_overrides.extend(["--mixing-type", args.mixing_type])
+        model_overrides.append(_global_transform_flag(args.global_transform))
         command.extend(model_overrides)
     return command
 
@@ -350,7 +396,16 @@ def _missing_summary_row(dataset, method, seed, iters, record, metrics_path):
     return row
 
 
-def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path, geometry_scale):
+def _manifest(
+    args,
+    seeds,
+    multi_seed,
+    output_root,
+    slim_executable,
+    abfpp_executable,
+    config_path,
+    geometry_scale,
+):
     packages = {}
     for name in ("numpy", "scipy", "torch", "matplotlib", "PyYAML", "nflows", "usd-core"):
         try:
@@ -369,6 +424,7 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         git_status = [line for line in git_status if not line[3:].replace("\\", "/").startswith(output_prefix)]
     dataset_hashes = {name: _sha256_file(DATASETS[name]) for name in args.datasets}
     slim_hash = _sha256_file(slim_executable) if slim_executable else None
+    abfpp_hash = _sha256_file(abfpp_executable) if abfpp_executable else None
     environment = {
         "python": sys.version,
         "platform": platform.platform(),
@@ -386,6 +442,8 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         "config_sha256": hashlib.sha256(config_path.read_bytes()).hexdigest(),
         "datasets": dataset_hashes,
         "methods": list(args.methods),
+        "init_method": args.init_method,
+        "init_boundary": args.init_boundary,
         **seed_settings,
         "iters": args.iters,
         "slim_iters": args.slim_iters,
@@ -394,12 +452,19 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         "hidden_dim": args.hidden_dim,
         "mlp_layers": args.mlp_layers,
         "spline_bins": args.spline_bins,
+        "mixing_type": args.mixing_type,
         "global_transform": args.global_transform,
+        "lr": args.lr,
+        "lr_schedule": args.lr_schedule,
+        "lbfgs_iters": args.lbfgs_iters,
+        "lbfgs_lr": args.lbfgs_lr,
+        "lbfgs_check_interval": args.lbfgs_check_interval,
         "device": args.device,
         "validation_device": args.validation_device,
         "intersection_batch_size": args.intersection_batch_size,
         "geometry_scale": geometry_scale,
         "slim_sha256": slim_hash,
+        "abfpp_sha256": abfpp_hash,
         "initial_uv_sha256": {},
         "environment": environment,
     }
@@ -417,6 +482,8 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
             for name in args.datasets
         },
         "methods": args.methods,
+        "init_method": args.init_method,
+        "init_boundary": args.init_boundary,
         **seed_settings,
         "iters": args.iters,
         "slim_iters": args.slim_iters,
@@ -425,7 +492,13 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         "hidden_dim": args.hidden_dim,
         "mlp_layers": args.mlp_layers,
         "spline_bins": args.spline_bins,
+        "mixing_type": args.mixing_type,
         "global_transform": args.global_transform,
+        "lr": args.lr,
+        "lr_schedule": args.lr_schedule,
+        "lbfgs_iters": args.lbfgs_iters,
+        "lbfgs_lr": args.lbfgs_lr,
+        "lbfgs_check_interval": args.lbfgs_check_interval,
         "device": args.device,
         "validation_device": args.validation_device,
         "intersection_batch_size": args.intersection_batch_size,
@@ -434,12 +507,18 @@ def _manifest(args, seeds, multi_seed, output_root, slim_executable, config_path
         "geometry_scale": geometry_scale,
         "slim_executable": str(slim_executable) if slim_executable else None,
         "slim_sha256": slim_hash,
+        "abfpp_executable": str(abfpp_executable) if abfpp_executable else None,
+        "abfpp_sha256": abfpp_hash,
     }
     return manifest
 
 
 def _geometry_scale_flag(enabled: bool) -> str:
     return "--geometry-scale" if enabled else "--no-geometry-scale"
+
+
+def _global_transform_flag(enabled: bool) -> str:
+    return "--global-transform" if enabled else "--no-global-transform"
 
 
 def _gpu_driver_version() -> str | None:
@@ -507,7 +586,13 @@ def _sha256_file(path: Path) -> str:
 
 
 def _source_sha256() -> str:
-    roots = [ROOT / "surface_nvp", ROOT / "scripts", ROOT / "external/slim_runner", ROOT / "configs"]
+    roots = [
+        ROOT / "surface_nvp",
+        ROOT / "scripts",
+        ROOT / "external/slim_runner",
+        ROOT / "external/abfpp_runner",
+        ROOT / "configs",
+    ]
     files = [ROOT / "pyproject.toml", ROOT / "requirements.txt"]
     for root in roots:
         files.extend(path for path in root.rglob("*") if path.is_file() and "__pycache__" not in path.parts)

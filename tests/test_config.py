@@ -25,3 +25,16 @@ def test_v2_boundary_weight_key_loads_for_clear_migration_error(tmp_path):
     path.write_text("train:\n  boundary_weight: 10.0\n", encoding="utf-8")
 
     assert load_config(str(path))["train"]["boundary_weight"] == 10.0
+
+
+def test_initialization_method_and_abfpp_executable_are_configurable(tmp_path):
+    path = tmp_path / "auto.yaml"
+    path.write_text(
+        "init:\n  method: auto\n  abfpp_executable: build/abfpp_runner/tool\n",
+        encoding="utf-8",
+    )
+
+    config = load_config(str(path))
+
+    assert config["init"]["method"] == "auto"
+    assert config["init"]["abfpp_executable"] == "build/abfpp_runner/tool"

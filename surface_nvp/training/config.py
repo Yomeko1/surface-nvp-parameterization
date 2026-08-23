@@ -7,7 +7,13 @@ import yaml
 
 
 DEFAULT_CONFIG = {
-    "init": {"method": "tutte", "boundary": "circle", "geometry_scale": True, "initial_uv": None},
+    "init": {
+        "method": "tutte",
+        "boundary": "circle",
+        "geometry_scale": True,
+        "initial_uv": None,
+        "abfpp_executable": None,
+    },
     "model": {
         "coupling_type": "affine",
         "num_layers": 6,
@@ -17,6 +23,7 @@ DEFAULT_CONFIG = {
         "spline_bins": 16,
         "spline_bound": 1.1,
         "global_transform": True,
+        "mixing_type": "none",
     },
     "train": {
         "seed": 0,
@@ -26,6 +33,10 @@ DEFAULT_CONFIG = {
         "plateau_patience": 4,
         "lr_decay": 0.5,
         "min_lr": 1e-6,
+        "lr_schedule": "constant",
+        "lbfgs_iters": 0,
+        "lbfgs_lr": 1.0,
+        "lbfgs_check_interval": 1,
         "boundary_weight": 0.0,
         "identity_weight": 1e-3,
         "area_weight": 100.0,
@@ -37,7 +48,10 @@ DEFAULT_CONFIG = {
 }
 
 COMMON_OVERRIDE_PATHS = {
+    "method": ("init", "method"),
+    "boundary": ("init", "boundary"),
     "initial_uv": ("init", "initial_uv"),
+    "abfpp_executable": ("init", "abfpp_executable"),
     "geometry_scale": ("init", "geometry_scale"),
     "seed": ("train", "seed"),
     "iters": ("train", "iters"),
@@ -46,6 +60,10 @@ COMMON_OVERRIDE_PATHS = {
     "plateau_patience": ("train", "plateau_patience"),
     "lr_decay": ("train", "lr_decay"),
     "min_lr": ("train", "min_lr"),
+    "lr_schedule": ("train", "lr_schedule"),
+    "lbfgs_iters": ("train", "lbfgs_iters"),
+    "lbfgs_lr": ("train", "lbfgs_lr"),
+    "lbfgs_check_interval": ("train", "lbfgs_check_interval"),
     "boundary_weight": ("train", "boundary_weight"),
     "identity_weight": ("train", "identity_weight"),
     "area_weight": ("train", "area_weight"),
@@ -57,8 +75,6 @@ COMMON_OVERRIDE_PATHS = {
 
 NVP_OVERRIDE_PATHS = {
     **COMMON_OVERRIDE_PATHS,
-    "method": ("init", "method"),
-    "boundary": ("init", "boundary"),
     "coupling_type": ("model", "coupling_type"),
     "num_layers": ("model", "num_layers"),
     "hidden_dim": ("model", "hidden_dim"),
@@ -67,6 +83,7 @@ NVP_OVERRIDE_PATHS = {
     "spline_bins": ("model", "spline_bins"),
     "spline_bound": ("model", "spline_bound"),
     "global_transform": ("model", "global_transform"),
+    "mixing_type": ("model", "mixing_type"),
 }
 
 

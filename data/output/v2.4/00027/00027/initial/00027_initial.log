@@ -1,0 +1,6 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\init_uv.py --input F:\Juyong_Zhang\1\try\CODE\data\input\00027\Input.obj --output F:\Juyong_Zhang\1\try\CODE\data\output\v2.4\00027\00027\initial\00027_initial.obj --method tutte --boundary circle --geometry-scale
+
+STDOUT:
+{'num_flipped': 0, 'min_signed_area': 5.279291237256147e-08, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:

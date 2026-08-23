@@ -1,0 +1,7 @@
+COMMAND: F:\Python\python.exe F:\Juyong_Zhang\1\try\CODE\scripts\run_slim.py --input F:\Juyong_Zhang\1\try\CODE\data\input\Isis\Isis_dABF.usda --initial-uv F:\Juyong_Zhang\1\try\CODE\data\output\v2.4\Isis\Isis\initial\Isis_initial.usda --output F:\Juyong_Zhang\1\try\CODE\data\output\v2.4\Isis\Isis\slim\Isis_slim.usda --geometry-scale --executable F:\Juyong_Zhang\1\try\CODE\build\slim_runner\Release\surface_nvp_slim.exe --iters 20
+
+STDOUT:
+initial {'num_flipped': 0, 'min_signed_area': 4.1098180972201694e-05, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+final {'num_flipped': 0, 'min_signed_area': 6.591539684054631e-05, 'num_nonfinite': 0, 'num_intersections': 0, 'intersections': [], 'is_valid': True}
+
+STDERR:

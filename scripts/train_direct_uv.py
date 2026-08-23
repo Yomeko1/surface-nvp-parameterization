@@ -32,6 +32,9 @@ def main() -> None:
     parser.add_argument("--output", required=True)
     parser.add_argument("--initial-uv", default=None, help="mesh whose UV coordinates are used as the shared initialization")
     parser.add_argument("--geometry-scale", action=argparse.BooleanOptionalAction, default=None)
+    parser.add_argument("--method", choices=["tutte", "mean_value", "abfpp", "auto"], default=None)
+    parser.add_argument("--boundary", choices=["circle", "square"], default=None)
+    parser.add_argument("--abfpp-executable", default=None)
     parser.add_argument("--seed", type=int, default=None)
     parser.add_argument("--iters", type=int, default=None)
     parser.add_argument("--lr", type=float, default=None)
@@ -39,6 +42,10 @@ def main() -> None:
     parser.add_argument("--plateau-patience", type=int, default=None)
     parser.add_argument("--lr-decay", type=float, default=None)
     parser.add_argument("--min-lr", type=float, default=None)
+    parser.add_argument("--lr-schedule", choices=["constant", "cosine"], default=None)
+    parser.add_argument("--lbfgs-iters", type=int, default=None)
+    parser.add_argument("--lbfgs-lr", type=float, default=None)
+    parser.add_argument("--lbfgs-check-interval", type=int, default=None)
     parser.add_argument("--boundary-weight", type=float, default=None, help="deprecated; must be 0")
     parser.add_argument("--identity-weight", type=float, default=None)
     parser.add_argument("--area-weight", type=float, default=None)
@@ -58,6 +65,7 @@ def main() -> None:
         initial_uv_path=config["init"]["initial_uv"],
         prim_path=config["io"]["prim_path"],
         geometry_scale=config["init"]["geometry_scale"],
+        abfpp_executable=config["init"]["abfpp_executable"],
     )
     initial_metrics = validate_uv(uv0, mesh.faces)
     print("initial", initial_metrics)
@@ -76,6 +84,10 @@ def main() -> None:
         plateau_patience=train_config["plateau_patience"],
         lr_decay=train_config["lr_decay"],
         min_lr=train_config["min_lr"],
+        lr_schedule=train_config["lr_schedule"],
+        lbfgs_iters=train_config["lbfgs_iters"],
+        lbfgs_lr=train_config["lbfgs_lr"],
+        lbfgs_check_interval=train_config["lbfgs_check_interval"],
         boundary_weight=train_config["boundary_weight"],
         identity_weight=train_config["identity_weight"],
         area_weight=train_config["area_weight"],
@@ -123,7 +135,8 @@ def main() -> None:
     }
     with out.with_suffix(".metrics.json").open("w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2)
-    save_run_summary(out, build_run_summary("direct_uv", train_config["iters"], payload))
+    total_iters = train_config["iters"] + train_config["lbfgs_iters"]
+    save_run_summary(out, build_run_summary("direct_uv", total_iters, payload))
 
 
 if __name__ == "__main__":

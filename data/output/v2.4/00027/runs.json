@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "key": "00027:direct:seed0:56714c5cb6a4",
+      "dataset": "00027",
+      "method": "direct",
+      "seed": 0,
+      "run_signature": "56714c5cb6a4db7f241ab2c181336c48e35aea20985ebafbae942fa80236950c",
+      "initial_uv_sha256": "f8170908ab0f15443f50e833a7e3b5aa3b3859296b32d610a748102dde707cd4",
+      "returncode": 0,
+      "wall_elapsed_seconds": 2713.1014939000015,
+      "metrics": "data\\output\\v2.4\\00027\\00027\\direct\\00027_direct.metrics.json",
+      "metrics_sha256": "e7db36cbcdabd990c34d0af0a25432062e7d5a68ddb97955e4f429ee8e068f82",
+      "finished_at": "2026-08-23T04:39:46.723811+00:00"
+    },
+    {
+      "key": "00027:affine:seed0:56714c5cb6a4",
+      "dataset": "00027",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "56714c5cb6a4db7f241ab2c181336c48e35aea20985ebafbae942fa80236950c",
+      "initial_uv_sha256": "f8170908ab0f15443f50e833a7e3b5aa3b3859296b32d610a748102dde707cd4",
+      "returncode": 0,
+      "wall_elapsed_seconds": 2903.9650192000263,
+      "metrics": "data\\output\\v2.4\\00027\\00027\\affine\\00027_affine.metrics.json",
+      "metrics_sha256": "ff803099e618f91894962c003c2b426010848b1e509bac44a072fe4c49c5fd46",
+      "finished_at": "2026-08-23T05:28:10.692974+00:00"
+    },
+    {
+      "key": "00027:spline:seed0:56714c5cb6a4",
+      "dataset": "00027",
+      "method": "spline",
+      "seed": 0,
+      "run_signature": "56714c5cb6a4db7f241ab2c181336c48e35aea20985ebafbae942fa80236950c",
+      "initial_uv_sha256": "f8170908ab0f15443f50e833a7e3b5aa3b3859296b32d610a748102dde707cd4",
+      "returncode": 0,
+      "wall_elapsed_seconds": 3471.621948199987,
+      "metrics": "data\\output\\v2.4\\00027\\00027\\spline\\00027_spline.metrics.json",
+      "metrics_sha256": "fcd797be2bd43ebe69ef6701a8a018993e1af2cc30e4ec19c99396b2f91c0c43",
+      "finished_at": "2026-08-23T06:26:02.319791+00:00"
+    },
+    {
+      "key": "00027:slim:seed0:56714c5cb6a4",
+      "dataset": "00027",
+      "method": "slim",
+      "seed": 0,
+      "run_signature": "56714c5cb6a4db7f241ab2c181336c48e35aea20985ebafbae942fa80236950c",
+      "initial_uv_sha256": "f8170908ab0f15443f50e833a7e3b5aa3b3859296b32d610a748102dde707cd4",
+      "returncode": 0,
+      "wall_elapsed_seconds": 155.7770104999945,
+      "metrics": "data\\output\\v2.4\\00027\\00027\\slim\\00027_slim.metrics.json",
+      "metrics_sha256": "f32642f9aea8c2464afca209af5e392266613a6fb7aaa4fa88f3ad2e4ab255cd",
+      "finished_at": "2026-08-23T06:28:38.100751+00:00"
+    }
+  ]
+}

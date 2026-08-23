@@ -20,8 +20,9 @@ def fit_nvp_to_target(
     hidden_dim: int = 64,
     mlp_layers: int = 3,
     s_clamp: float = 2.0,
-    spline_bins: int = 8,
+    spline_bins: int = 16,
     spline_bound: float = 1.1,
+    mixing_type: str = "none",
     iters: int = 5000,
     lr: float = 1e-3,
     check_interval: int = 100,
@@ -55,6 +56,7 @@ def fit_nvp_to_target(
         coupling_type=coupling_type,
         spline_bins=spline_bins,
         spline_bound=spline_bound,
+        mixing_type=mixing_type,
     ).to(device)
     model.set_domain(initial)
     if model.global_log_scale is not None:

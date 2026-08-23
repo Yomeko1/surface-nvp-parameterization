@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import pytest
 
+import surface_nvp.training.trainer as trainer_module
+
 from surface_nvp.losses.distortion import symmetric_dirichlet_loss
 from surface_nvp.training.supervised import fit_nvp_to_target
 from surface_nvp.training.trainer import train_direct_uv, train_nvp
@@ -173,3 +175,58 @@ def test_plateau_restart_reduces_learning_rate():
     assert info["plateau_restarts"] >= 1
     assert info["final_learning_rate"] < 1e-12
     assert any(entry.get("restarted_from_best") for entry in history)
+
+
+def test_invalid_rollbacks_decay_learning_rate_cumulatively(monkeypatch):
+    vertices, faces, uv0 = _square_mesh()
+
+    def invalid_metrics(*_args, **_kwargs):
+        return {
+            "num_flipped": 1,
+            "min_signed_area": -1.0,
+            "num_nonfinite": 0,
+            "num_intersections": 0,
+            "intersections": [],
+            "is_valid": False,
+        }
+
+    monkeypatch.setattr(trainer_module, "compute_metrics_torch", invalid_metrics)
+    _, history, info = train_direct_uv(
+        vertices,
+        faces,
+        uv0,
+        iters=2,
+        lr=1e-3,
+        min_lr=1e-8,
+        check_interval=1,
+        lr_decay=0.5,
+    )
+
+    assert [entry["learning_rate"] for entry in history] == pytest.approx([5e-4, 2.5e-4])
+    assert info["invalid_rollbacks"] == 2
+
+
+def test_cosine_schedule_and_lbfgs_phase_are_recorded():
+    vertices, faces, uv0 = _square_mesh()
+
+    _, _, history, info = train_nvp(
+        vertices,
+        faces,
+        uv0,
+        iters=2,
+        lr=1e-4,
+        min_lr=1e-6,
+        lr_schedule="cosine",
+        lbfgs_iters=1,
+        lbfgs_lr=0.1,
+        lbfgs_check_interval=1,
+        check_interval=1,
+        mixing_type="rotation",
+        return_info=True,
+    )
+
+    assert history[0]["phase"] == "adam"
+    assert history[1]["learning_rate"] == pytest.approx(1e-6)
+    assert history[-1]["phase"] == "lbfgs"
+    assert info["lr_schedule"] == "cosine"
+    assert info["lbfgs_iters"] == 1

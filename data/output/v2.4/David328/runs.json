@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "key": "David328:direct:seed0:0be6b4a9ab64",
+      "dataset": "David328",
+      "method": "direct",
+      "seed": 0,
+      "run_signature": "0be6b4a9ab64060b787f41ef9b3fa500e834a90a9bee7e0eb3938250eb388752",
+      "initial_uv_sha256": "d2b703fbcc9955aef10e1b5eccee870a92f17493b467a98825b167c0e80245a2",
+      "returncode": 0,
+      "wall_elapsed_seconds": 16.44828639998741,
+      "metrics": "data\\output\\v2.4\\David328\\David328\\direct\\David328_direct.metrics.json",
+      "metrics_sha256": "d4d70558cced70feec3d56544bfcff1b3b55f560f3f5fd7973fae56b7c2390e3",
+      "finished_at": "2026-08-22T18:37:52.690347+00:00"
+    },
+    {
+      "key": "David328:affine:seed0:0be6b4a9ab64",
+      "dataset": "David328",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "0be6b4a9ab64060b787f41ef9b3fa500e834a90a9bee7e0eb3938250eb388752",
+      "initial_uv_sha256": "d2b703fbcc9955aef10e1b5eccee870a92f17493b467a98825b167c0e80245a2",
+      "returncode": 0,
+      "wall_elapsed_seconds": 25.322116900002584,
+      "metrics": "data\\output\\v2.4\\David328\\David328\\affine\\David328_affine.metrics.json",
+      "metrics_sha256": "e5c6bab2231df76748e0c77a74463173d7646d82c46d9ff4433df9da521002f4",
+      "finished_at": "2026-08-22T18:38:18.016930+00:00"
+    },
+    {
+      "key": "David328:spline:seed0:0be6b4a9ab64",
+      "dataset": "David328",
+      "method": "spline",
+      "seed": 0,
+      "run_signature": "0be6b4a9ab64060b787f41ef9b3fa500e834a90a9bee7e0eb3938250eb388752",
+      "initial_uv_sha256": "d2b703fbcc9955aef10e1b5eccee870a92f17493b467a98825b167c0e80245a2",
+      "returncode": 0,
+      "wall_elapsed_seconds": 94.671875,
+      "metrics": "data\\output\\v2.4\\David328\\David328\\spline\\David328_spline.metrics.json",
+      "metrics_sha256": "6745fa6825086bf78403dfc5c2d10e1723f491c9f8e6d5da731a97e5a458f740",
+      "finished_at": "2026-08-22T18:39:52.692819+00:00"
+    },
+    {
+      "key": "David328:slim:seed0:0be6b4a9ab64",
+      "dataset": "David328",
+      "method": "slim",
+      "seed": 0,
+      "run_signature": "0be6b4a9ab64060b787f41ef9b3fa500e834a90a9bee7e0eb3938250eb388752",
+      "initial_uv_sha256": "d2b703fbcc9955aef10e1b5eccee870a92f17493b467a98825b167c0e80245a2",
+      "returncode": 0,
+      "wall_elapsed_seconds": 5.815750900001149,
+      "metrics": "data\\output\\v2.4\\David328\\David328\\slim\\David328_slim.metrics.json",
+      "metrics_sha256": "a0e63d03415b8423cf26a7a963db2c9d5b6a443529ba48e0032643657cc1b627",
+      "finished_at": "2026-08-22T18:39:58.511835+00:00"
+    }
+  ]
+}

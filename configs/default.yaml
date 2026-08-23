@@ -3,6 +3,7 @@ init:
   boundary: circle
   geometry_scale: true
   initial_uv:
+  abfpp_executable:
 model:
   coupling_type: affine
   num_layers: 6
@@ -12,6 +13,7 @@ model:
   spline_bins: 16
   spline_bound: 1.1
   global_transform: true
+  mixing_type: none
 train:
   seed: 0
   iters: 1000
@@ -20,6 +22,10 @@ train:
   plateau_patience: 4
   lr_decay: 0.5
   min_lr: 0.000001
+  lr_schedule: constant
+  lbfgs_iters: 0
+  lbfgs_lr: 1.0
+  lbfgs_check_interval: 1
   boundary_weight: 0.0
   identity_weight: 0.001
   area_weight: 100.0

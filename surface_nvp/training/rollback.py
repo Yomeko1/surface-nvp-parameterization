@@ -24,3 +24,9 @@ class SafeCheckpoint:
         model.load_state_dict(self.model_state)
         optimizer.load_state_dict(self.optimizer_state)
         return True
+
+    def restore_model(self, model) -> bool:
+        if self.model_state is None:
+            return False
+        model.load_state_dict(self.model_state)
+        return True

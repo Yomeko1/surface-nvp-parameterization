@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "key": "Cow:direct:seed0:a0b649796060",
+      "dataset": "Cow",
+      "method": "direct",
+      "seed": 0,
+      "run_signature": "a0b649796060ba4039a130678035ebe4da0ffabaca995c3f85438e18aeb2e422",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 198.70452189999924,
+      "metrics": "data\\output\\v2.4\\Cow\\Cow\\direct\\Cow_direct.metrics.json",
+      "metrics_sha256": "c00caa1a8f12eb21c36bd3131b844f48c92ad9afef495763bf84cd0f65c3f5bd",
+      "finished_at": "2026-08-22T18:57:09.471241+00:00"
+    },
+    {
+      "key": "Cow:affine:seed0:a0b649796060",
+      "dataset": "Cow",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "a0b649796060ba4039a130678035ebe4da0ffabaca995c3f85438e18aeb2e422",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 214.38520649999555,
+      "metrics": "data\\output\\v2.4\\Cow\\Cow\\affine\\Cow_affine.metrics.json",
+      "metrics_sha256": "6b3623d3c90c1b290b857b0c7c705fd19b13619fb3e526f55312ddedab9c1f83",
+      "finished_at": "2026-08-22T19:00:43.861341+00:00"
+    },
+    {
+      "key": "Cow:spline:seed0:a0b649796060",
+      "dataset": "Cow",
+      "method": "spline",
+      "seed": 0,
+      "run_signature": "a0b649796060ba4039a130678035ebe4da0ffabaca995c3f85438e18aeb2e422",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 0,
+      "wall_elapsed_seconds": 274.5933831000002,
+      "metrics": "data\\output\\v2.4\\Cow\\Cow\\spline\\Cow_spline.metrics.json",
+      "metrics_sha256": "d073ba2dc19c13a1a8882bc3baccc267b05bb0933964b98a27a46e2edffa8c5f",
+      "finished_at": "2026-08-22T19:05:18.457912+00:00"
+    },
+    {
+      "key": "Cow:slim:seed0:a0b649796060",
+      "dataset": "Cow",
+      "method": "slim",
+      "seed": 0,
+      "run_signature": "a0b649796060ba4039a130678035ebe4da0ffabaca995c3f85438e18aeb2e422",
+      "initial_uv_sha256": "2dc192a44dac52dd1d35ae8c1ba670f06b3a42686d2e20d188faf2a4ce1068c0",
+      "returncode": 1,
+      "wall_elapsed_seconds": 18.990507700000308,
+      "metrics": "data\\output\\v2.4\\Cow\\Cow\\slim\\Cow_slim.metrics.json",
+      "metrics_sha256": "0c023090741dd2617f1b77b022ac9c887b54805f1f542ce256ba2150f12b9768",
+      "finished_at": "2026-08-22T19:05:37.453555+00:00"
+    }
+  ]
+}

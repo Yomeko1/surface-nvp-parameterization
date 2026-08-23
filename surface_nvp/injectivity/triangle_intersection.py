@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import itertools
-
 import numpy as np
 import torch
 
@@ -46,19 +44,66 @@ def triangles_intersect(t0: np.ndarray, t1: np.ndarray) -> bool:
     return point_in_triangle(t0[0], t1) or point_in_triangle(t1[0], t0)
 
 
-def find_triangle_intersections(uv: np.ndarray, faces: np.ndarray, ignore_adjacent: bool = True) -> list[tuple[int, int]]:
+def find_triangle_intersections(
+    uv: np.ndarray,
+    faces: np.ndarray,
+    ignore_adjacent: bool = True,
+    tile_size: int = 512,
+) -> list[tuple[int, int]]:
+    """Return exact UV triangle intersections, memory-bounded via block processing.
+
+    Preserves exact global detection (every non-adjacent, bbox-overlapping pair is
+    tested exactly), but enumerates upper-triangular pairs in bounded tiles so it
+    neither materializes an O(F^2) pair array nor loops over all pairs in Python.
+    """
     tris = uv[faces]
     boxes_min = tris.min(axis=1)
     boxes_max = tris.max(axis=1)
+    n = int(faces.shape[0])
     hits: list[tuple[int, int]] = []
-    face_sets = [set(map(int, f)) for f in faces]
-    for i, j in itertools.combinations(range(faces.shape[0]), 2):
-        if ignore_adjacent and face_sets[i].intersection(face_sets[j]):
-            continue
-        if np.any(boxes_max[i] < boxes_min[j]) or np.any(boxes_max[j] < boxes_min[i]):
-            continue
-        if triangles_intersect(tris[i], tris[j]):
-            hits.append((i, j))
+    if n < 2:
+        return hits
+
+    for i0 in range(0, n, tile_size):
+        i1 = min(i0 + tile_size, n)
+        for j0 in range(i0, n, tile_size):
+            j1 = min(j0 + tile_size, n)
+            if i0 == j0:
+                diag = i1 - i0
+                if diag < 2:
+                    continue
+                ib, jb = np.triu_indices(diag, k=1)
+                pi = (ib + i0).astype(np.int64)
+                pj = (jb + j0).astype(np.int64)
+            else:
+                ni = i1 - i0
+                nj = j1 - j0
+                gi, gj = np.meshgrid(np.arange(ni), np.arange(nj), indexing="ij")
+                pi = (gi.ravel() + i0).astype(np.int64)
+                pj = (gj.ravel() + j0).astype(np.int64)
+
+            if ignore_adjacent:
+                fi = faces[pi]
+                fj = faces[pj]
+                adjacent = (fi[:, :, None] == fj[:, None, :]).any(axis=(1, 2))
+                if adjacent.all():
+                    continue
+                pi = pi[~adjacent]
+                pj = pj[~adjacent]
+
+            bmin0 = boxes_min[pi]
+            bmax0 = boxes_max[pi]
+            bmin1 = boxes_min[pj]
+            bmax1 = boxes_max[pj]
+            ov = ~((bmax0 < bmin1).any(axis=1) | (bmax1 < bmin0).any(axis=1))
+            if not ov.any():
+                continue
+            pi = pi[ov]
+            pj = pj[ov]
+
+            for a, b in zip(pi.tolist(), pj.tolist()):
+                if triangles_intersect(tris[a], tris[b]):
+                    hits.append((a, b))
     return hits
 
 
@@ -67,40 +112,69 @@ def count_triangle_intersections_torch(
     faces: torch.Tensor,
     ignore_adjacent: bool = True,
     batch_size: int = 262144,
+    tile_size: int = 1024,
     eps: float = 1e-12,
 ) -> int:
-    """Count UV triangle intersections with torch batched pair tests.
+    """Count UV triangle intersections with torch, memory-bounded block processing.
 
     This is intended for training-time validation. It keeps the exact segment
-    intersection tests on torch tensors, but batches triangle pairs to avoid
-    constructing an enormous [F, F, ...] tensor.
+    intersection tests on torch tensors, but enumerates triangle pairs in
+    upper-triangular tiles so it never materializes an O(F^2) pair tensor. This
+    avoids CUDA out-of-memory on large meshes while preserving exact global
+    detection: every non-adjacent, axis-aligned-bounding-box-overlapping pair is
+    still tested exactly.
     """
     tris = uv[faces]
     num_faces = int(faces.shape[0])
     if num_faces < 2:
         return 0
 
-    pair_i, pair_j = torch.triu_indices(num_faces, num_faces, offset=1, device=uv.device)
-    if ignore_adjacent:
-        fi = faces[pair_i]
-        fj = faces[pair_j]
-        adjacent = (fi[:, :, None] == fj[:, None, :]).any(dim=(1, 2))
-        pair_i = pair_i[~adjacent]
-        pair_j = pair_j[~adjacent]
-
     total = 0
-    for start in range(0, pair_i.numel(), batch_size):
-        end = min(start + batch_size, pair_i.numel())
-        t0 = tris[pair_i[start:end]]
-        t1 = tris[pair_j[start:end]]
-        min0, max0 = t0.amin(dim=1), t0.amax(dim=1)
-        min1, max1 = t1.amin(dim=1), t1.amax(dim=1)
-        overlap = ~((max0 < min1).any(dim=1) | (max1 < min0).any(dim=1))
-        if not overlap.any():
-            continue
-        t0 = t0[overlap]
-        t1 = t1[overlap]
-        total += int(_triangles_intersect_torch(t0, t1, eps=eps).sum().item())
+    dev = uv.device
+    for i0 in range(0, num_faces, tile_size):
+        i1 = min(i0 + tile_size, num_faces)
+        for j0 in range(i0, num_faces, tile_size):
+            j1 = min(j0 + tile_size, num_faces)
+            if i0 == j0:
+                diag = i1 - i0
+                if diag < 2:
+                    continue
+                pair_i, pair_j = torch.triu_indices(diag, diag, offset=1, device=dev)
+                pair_i = pair_i + i0
+                pair_j = pair_j + j0
+            else:
+                ni = i1 - i0
+                nj = j1 - j0
+                gi, gj = torch.meshgrid(
+                    torch.arange(ni, device=dev), torch.arange(nj, device=dev), indexing="ij"
+                )
+                pair_i = (gi.reshape(-1) + i0).to(torch.long)
+                pair_j = (gj.reshape(-1) + j0).to(torch.long)
+
+            if pair_i.numel() == 0:
+                continue
+
+            if ignore_adjacent:
+                fi = faces[pair_i]
+                fj = faces[pair_j]
+                adjacent = (fi[:, :, None] == fj[:, None, :]).any(dim=(1, 2))
+                pair_i = pair_i[~adjacent]
+                pair_j = pair_j[~adjacent]
+                if pair_i.numel() == 0:
+                    continue
+
+            for start in range(0, pair_i.numel(), batch_size):
+                end = min(start + batch_size, pair_i.numel())
+                t0 = tris[pair_i[start:end]]
+                t1 = tris[pair_j[start:end]]
+                min0, max0 = t0.amin(dim=1), t0.amax(dim=1)
+                min1, max1 = t1.amin(dim=1), t1.amax(dim=1)
+                overlap = ~((max0 < min1).any(dim=1) | (max1 < min0).any(dim=1))
+                if not overlap.any():
+                    continue
+                t0 = t0[overlap]
+                t1 = t1[overlap]
+                total += int(_triangles_intersect_torch(t0, t1, eps=eps).sum().item())
     return total
 
 

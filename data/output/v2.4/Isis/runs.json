@@ -1,0 +1,56 @@
+{
+  "runs": [
+    {
+      "key": "Isis:direct:seed0:49c64d7fb628",
+      "dataset": "Isis",
+      "method": "direct",
+      "seed": 0,
+      "run_signature": "49c64d7fb6285f53af796eeb91e5fa5bcc1a759c7672c884af1e8cb286d8ee1b",
+      "initial_uv_sha256": "e4f0cacdab1af93900e6e570be8fc0f91392d9c132d29e2ee0fa4a5e285a6081",
+      "returncode": 0,
+      "wall_elapsed_seconds": 19.172570700000506,
+      "metrics": "data\\output\\v2.4\\Isis\\Isis\\direct\\Isis_direct.metrics.json",
+      "metrics_sha256": "c2b1fb1d98ed9cdc9eded656682963d0ebf7837c0d0710c6ccba0d1f737da981",
+      "finished_at": "2026-08-22T18:46:36.331891+00:00"
+    },
+    {
+      "key": "Isis:affine:seed0:49c64d7fb628",
+      "dataset": "Isis",
+      "method": "affine",
+      "seed": 0,
+      "run_signature": "49c64d7fb6285f53af796eeb91e5fa5bcc1a759c7672c884af1e8cb286d8ee1b",
+      "initial_uv_sha256": "e4f0cacdab1af93900e6e570be8fc0f91392d9c132d29e2ee0fa4a5e285a6081",
+      "returncode": 0,
+      "wall_elapsed_seconds": 27.67369399999734,
+      "metrics": "data\\output\\v2.4\\Isis\\Isis\\affine\\Isis_affine.metrics.json",
+      "metrics_sha256": "7279bf0d1e7883ffebe8f6842afbe431598405bb7b07beeecc68d5e6508ee4ea",
+      "finished_at": "2026-08-22T18:47:04.010070+00:00"
+    },
+    {
+      "key": "Isis:spline:seed0:49c64d7fb628",
+      "dataset": "Isis",
+      "method": "spline",
+      "seed": 0,
+      "run_signature": "49c64d7fb6285f53af796eeb91e5fa5bcc1a759c7672c884af1e8cb286d8ee1b",
+      "initial_uv_sha256": "e4f0cacdab1af93900e6e570be8fc0f91392d9c132d29e2ee0fa4a5e285a6081",
+      "returncode": 0,
+      "wall_elapsed_seconds": 98.36077410000144,
+      "metrics": "data\\output\\v2.4\\Isis\\Isis\\spline\\Isis_spline.metrics.json",
+      "metrics_sha256": "33880a04ed6b15eda4d399041405aa2ae2e8d13d61608904eaca92b752b8127c",
+      "finished_at": "2026-08-22T18:48:42.375267+00:00"
+    },
+    {
+      "key": "Isis:slim:seed0:49c64d7fb628",
+      "dataset": "Isis",
+      "method": "slim",
+      "seed": 0,
+      "run_signature": "49c64d7fb6285f53af796eeb91e5fa5bcc1a759c7672c884af1e8cb286d8ee1b",
+      "initial_uv_sha256": "e4f0cacdab1af93900e6e570be8fc0f91392d9c132d29e2ee0fa4a5e285a6081",
+      "returncode": 0,
+      "wall_elapsed_seconds": 6.295270600006916,
+      "metrics": "data\\output\\v2.4\\Isis\\Isis\\slim\\Isis_slim.metrics.json",
+      "metrics_sha256": "98fcc69f7af12000d505d950d03cccc5e1bc8bcf9f932c66e4368c162ad5634d",
+      "finished_at": "2026-08-22T18:48:48.673302+00:00"
+    }
+  ]
+}
