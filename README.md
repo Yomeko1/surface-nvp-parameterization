@@ -17,7 +17,7 @@ Version 2.4 supports a focused single-chart setting:
 - Affine Real-NVP or monotonic rational-quadratic spline deformation of the initial UV.
 - Spline-NVP includes a learnable positive global scale and translation outside the bounded spline domain.
 - Affine can enable the same learnable global scale/translation via `global_transform` (default on since v2.2).
-- Default `spline_bins` is 16 since v2.2 (fairness/bins ablations in `data/output/v2.2/`).
+- Default `spline_bins` is 16 since v2.2 (fairness/bins ablations are summarized in `v2.4.md`).
 - A shared optimizer and objective for NVP and direct-UV experiments.
 - Free UV boundaries during optimization; the initial boundary is not pinned.
 - An optional libigl SLIM baseline that starts from the same initial UV.
@@ -171,32 +171,18 @@ rows; invalid method outputs are retained and marked as failed rather than
 reported as successful. Resume is allowed only when the Git state, config hash,
 datasets, methods, and run parameters match the existing manifest.
 
-The formal seed-0 v2.1 outputs are stored in `data/output/v2.1/seed0/balls/`,
-`data/output/v2.1/seed0/small/`, and `data/output/v2.1/seed0/cow/`. Their
-compatible five-mesh summary and component hashes are in
-`data/output/v2.1/seed0/all/`. Rebuild the merged summary without modifying
-the original run artifacts with:
+Raw experiment outputs are written under `data/output/`. This directory is
+intentionally ignored by Git so large meshes, plots, logs, and checkpoints stay
+local. Rebuild a merged summary without modifying the original run artifacts with:
 
 ```bash
 python scripts/merge_benchmark_summaries.py --inputs data/output/v2.1/seed0/balls data/output/v2.1/seed0/small data/output/v2.1/seed0/cow --output-root data/output/v2.1/seed0/all
 ```
 
-The formal Affine/Spline seeds 0-4 matrix is stored in
-`data/output/v2.1/multiseed/`, including all meshes, diagnostics, raw metrics,
-run hashes, `statistics.csv`, and paired `paired.csv` comparisons.
-
-The v2.2 fairness and bins ablations are stored in `data/output/v2.2/`:
-seed-0 runs of `affine`, `affine_g` (affine + global transform), `affine_cap`
-(capacity-matched affine), and `spline` with `spline_bins = 4 / 8 / 16`. New
-Jacobian metrics `stretch_max_*` (σ_max) and `condition_number_*` (κ) are
-reported there and in `final.metrics.json`. See `data/output/v2.2/README.md`.
-
-The v2.4 release archive is stored in `data/output/v2.4/`. It contains the
-six-dataset Tutte-initialized baseline, including the 26408-face `00027` case,
-plus the reduced and full-budget `improved_123` experiments. The new
-mean-value/ABF++/`auto` initializer was validated separately and does not
-retroactively replace those baseline initial UV files. See
-`data/output/v2.4/README.md` and `v2.4.md` for the distinction and full tables.
+The historical v2.1/v2.2 results and the v2.4 six-dataset experiments remain
+available in the local `data/output/` tree. Their methods, aggregate metrics,
+and release conclusions are documented in `v2.4.md`; raw artifacts are not
+part of the GitHub repository.
 
 Diagnose whether an NVP architecture can represent a known target UV map:
 
@@ -362,6 +348,8 @@ scripts/
   summarize_metrics.py       aggregate run metrics
 external/slim_runner/        minimal libigl SLIM command-line wrapper
 external/abfpp_runner/       optional pinned OpenABF command-line wrapper
+data/input/                   versioned input meshes only
+data/output/                  local generated results (Git-ignored)
 tests/                       loss, initialization, trainer, and NVP tests
 ```
 
@@ -376,7 +364,9 @@ definition, so its output is always passed through the v2.4 global intersection
 validator before use. `auto` provides the practical guarantee by rejecting
 invalid candidates and retaining a convex-boundary fallback.
 
-The legacy directories in `data/output/v1/` are the formal v1 affine-NVP and direct-UV runs for five meshes. They are retained as historical baselines. `data/output/v2.1/seed0/` contains the clean, shared-scale v2.1 comparison for Direct UV, Affine-NVP, Spline-NVP, and SLIM.
+The local `data/output/` tree may contain legacy and current experiment artifacts,
+but it is intentionally excluded from Git. Only input meshes under `data/input/`
+are versioned.
 
 See `v2.4.md` for the full record: historical v2.1/v2.2 baselines, the
 memory-bounded global validator, 00027 diagnosis, optimizer/model experiments,

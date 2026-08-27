@@ -3,7 +3,30 @@ v1.md
 __pycache__/
 *.pyc
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
 .venv/
 build/
 dist/
 *.egg-info/
+
+# Local datasets: only data/input is versioned.
+/data/*
+!/data/input/
+!/data/input/**
+
+# Local experiment results and operational notes.
+/SERVER_GUIDE.md
+/*.bundle
+/tmp_group_meeting_*/
+
+# Generated logs and LaTeX build caches.
+*.log
+*.aux
+*.nav
+*.out
+*.snm
+*.synctex.gz
+*.toc

@@ -1,2 +1,0 @@
-method,iters,selected_iteration,valid,num_flipped,num_intersections,min_signed_area,symmetric_dirichlet_mean,symmetric_dirichlet_max,angle_distortion_mean_deg,angle_distortion_max_deg,initial_symmetric_dirichlet_mean,initial_symmetric_dirichlet_max
-nvp,1000,30,True,0,0,0.0006488632643595338,32.58623123168945,576.9684448242188,18.266167342244504,90.38228089226241,474.7046203613281,8109.88134765625
