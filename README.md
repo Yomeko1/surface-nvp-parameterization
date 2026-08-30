@@ -2,13 +2,29 @@
 
 This project is an injectivity-aware surface parameterization research pipeline inspired by StructuredField's orientation-preserving NVP idea.
 
+Version 3.0 adds an isolated **mesh-aligned piecewise-linear NVP (PL-NVP)**
+research pipeline. Instead of applying a continuous nonlinear NVP to vertices
+and repairing invalid discrete outputs with rollback, every PL-NVP layer moves
+colored independent vertices inside their convex one-ring legal regions. With
+the fixed outer boundary of a scaffold disk, the extended mesh stays globally
+injective by construction. Its trainer has no rollback branch. See
+[`research/mesh_pl_nvp/PRINCIPLE_CN.md`](research/mesh_pl_nvp/PRINCIPLE_CN.md)
+for the mathematical chain and
+[`research/mesh_pl_nvp/RUN_PIPELINE_CN.md`](research/mesh_pl_nvp/RUN_PIPELINE_CN.md)
+for complete commands.
+
+The v2.4 Affine/Spline pipeline is retained unchanged for baselines and
+comparison. It continues to use explicit flip/intersection validation and
+rollback because its continuous NVP map and the final vertex-interpolated mesh
+are not the same mapping.
+
 Goal:
 
 ```text
 surface mesh -> initial valid UV -> 2D orientation-preserving NVP -> checked UV output
 ```
 
-Version 2.4 supports a focused single-chart setting:
+The retained v2.4 pipeline supports a focused single-chart setting:
 
 - One triangular mesh.
 - Disk topology with one boundary loop.
@@ -348,6 +364,7 @@ scripts/
   summarize_metrics.py       aggregate run metrics
 external/slim_runner/        minimal libigl SLIM command-line wrapper
 external/abfpp_runner/       optional pinned OpenABF command-line wrapper
+research/mesh_pl_nvp/         isolated v3.0 mesh-aligned PL-NVP implementation
 data/input/                   versioned input meshes only
 data/output/                  local generated results (Git-ignored)
 tests/                       loss, initialization, trainer, and NVP tests
@@ -355,7 +372,16 @@ tests/                       loss, initialization, trainer, and NVP tests
 
 ## Important Notes
 
-The NVP map is orientation-preserving in continuous 2D parameter space because each coupling layer has positive Jacobian determinant. In the discrete mesh, we still validate triangle signed areas and triangle intersections because vertices are mapped and then connected by straight UV edges.
+In the retained v2.4 pipeline, the NVP map is orientation-preserving in
+continuous 2D parameter space because each coupling layer has positive
+Jacobian determinant. The discrete mesh still requires triangle-area and
+intersection validation because mapped vertices are reconnected by straight
+UV edges.
+
+The v3.0 PL-NVP research pipeline removes that continuous/discrete mismatch:
+its layers are defined directly on the triangulation. It remains isolated from
+the production package while the method's numerical accuracy, runtime, and
+scaffold boundary quality are still under study.
 
 The method preserves injectivity best when the initial UV is already valid.
 Tutte circle initialization remains the conservative default. ABF++ guarantees
@@ -368,7 +394,9 @@ The local `data/output/` tree may contain legacy and current experiment artifact
 but it is intentionally excluded from Git. Only input meshes under `data/input/`
 are versioned.
 
-See `v2.4.md` for the full record: historical v2.1/v2.2 baselines, the
+See `v3.0.md` for the PL-NVP release scope, defaults, guarantees, tests, and
+known limitations. See `v2.4.md` for the retained baseline's full record:
+historical v2.1/v2.2 baselines, the
 memory-bounded global validator, 00027 diagnosis, optimizer/model experiments,
 new initialization portfolio, exact defaults, and release verification. Git
 tags identify the release rollback points.

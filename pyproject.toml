@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "surface-nvp-param"
-version = "2.4.0"
-description = "Injectivity-aware affine and spline NVP surface parameterization"
+version = "3.0.0"
+description = "Surface parameterization with continuous and mesh-aligned piecewise-linear NVP pipelines"
 readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
