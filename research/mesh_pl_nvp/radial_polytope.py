@@ -17,6 +17,26 @@ import torch
 from torch import Tensor
 
 
+RADIAL_MAPS = frozenset({"softsign", "atanh"})
+
+
+def validate_radial_map(radial_map: str) -> str:
+    """Validate the opt-in radial bijection used by a coupling layer."""
+    if radial_map not in RADIAL_MAPS:
+        choices = ", ".join(sorted(RADIAL_MAPS))
+        raise ValueError(f"radial_map must be one of: {choices}")
+    return radial_map
+
+
+def radial_conditioning_risk(q: Tensor, radial_map: str) -> Tensor:
+    """Measure inverse-radial sensitivity on a common [0, 1] scale."""
+    radial_map = validate_radial_map(radial_map)
+    q_safe = q.clamp(min=0.0, max=1.0)
+    if radial_map == "softsign":
+        return q_safe
+    return 1.0 - torch.sqrt((1.0 - q_safe.square()).clamp_min(0.0))
+
+
 def _require_shapes(A: Tensor, b: Tensor, center: Tensor) -> None:
     if A.ndim != 2 or A.shape[1] != 2:
         raise ValueError(f"A must have shape (m, 2), got {tuple(A.shape)}")
@@ -206,6 +226,7 @@ def to_polytope(
     center: Tensor,
     *,
     radial_scale: float = 1.0,
+    radial_map: str = "softsign",
 ) -> Tensor:
     """Map ``R^2`` bijectively into the interior of ``K={x | A x < b}``.
 
@@ -217,12 +238,17 @@ def to_polytope(
         raise ValueError("latent must have final dimension 2")
     if radial_scale <= 0.0:
         raise ValueError("radial_scale must be positive")
+    radial_map = validate_radial_map(radial_map)
 
     delta = latent - center
     radius, direction, nonzero = _radius_and_direction(delta)
     boundary_radius = ray_radius(direction, A, b, center)
     relative_radius = radius / boundary_radius
-    squashed = radial_scale * relative_radius / (1.0 + radial_scale * relative_radius)
+    scaled_radius = radial_scale * relative_radius
+    if radial_map == "softsign":
+        squashed = scaled_radius / (1.0 + scaled_radius)
+    else:
+        squashed = torch.tanh(scaled_radius)
     mapped = center + (boundary_radius * squashed)[..., None] * direction
     # The radial formula has first-order limit c + radial_scale * (z-c) at
     # the center. Using that continuation avoids a zero-gradient identity
@@ -238,6 +264,7 @@ def from_polytope(
     center: Tensor,
     *,
     radial_scale: float = 1.0,
+    radial_map: str = "softsign",
     membership_tolerance: float = 1.0e-10,
 ) -> Tensor:
     """Analytical inverse of :func:`to_polytope`."""
@@ -246,6 +273,7 @@ def from_polytope(
         raise ValueError("points must have final dimension 2")
     if radial_scale <= 0.0:
         raise ValueError("radial_scale must be positive")
+    radial_map = validate_radial_map(radial_map)
 
     violation = points @ A.transpose(0, 1) - b
     if bool(torch.any(violation.detach() >= membership_tolerance)):
@@ -259,7 +287,10 @@ def from_polytope(
     if bool(torch.any(fraction.detach() >= 1.0)):
         raise ValueError("point lies on or outside the polygon boundary")
 
-    unsquashed = fraction / (radial_scale * (1.0 - fraction))
+    if radial_map == "softsign":
+        unsquashed = fraction / (radial_scale * (1.0 - fraction))
+    else:
+        unsquashed = torch.atanh(fraction) / radial_scale
     latent = center + (boundary_radius * unsquashed)[..., None] * direction
     center_limit = center + delta / radial_scale
     return torch.where(nonzero[..., None], latent, center_limit)

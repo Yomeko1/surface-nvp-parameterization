@@ -74,6 +74,23 @@ def test_batched_flow_is_legal_and_invertible_after_parameter_perturbation() -> 
     assert float(torch.max(torch.abs(restored - uv)).detach()) < 2.0e-6
 
 
+def test_batched_atanh_flow_is_legal_and_invertible() -> None:
+    torch.manual_seed(23)
+    uv, faces = make_grid_triangulation(6, 6)
+    model = BatchedMeshCouplingFlow(
+        _lift(uv), faces, uv, cycles=2, hidden_dim=12, radial_map="atanh"
+    ).double()
+    with torch.no_grad():
+        for parameter in model.parameters():
+            parameter.add_(0.025 * torch.randn_like(parameter))
+    mapped = model()
+    diagnostics = diagnose_embedding(mapped, faces)
+    assert diagnostics.flipped_faces == 0
+    assert diagnostics.proper_edge_intersections == 0
+    restored = model(mapped, inverse=True)
+    assert float(torch.max(torch.abs(restored - uv)).detach()) < 2.0e-6
+
+
 def test_local_geometry_conditioner_preserves_identity_and_inverse() -> None:
     uv, faces = make_grid_triangulation(6, 6)
     model = BatchedMeshCouplingFlow(

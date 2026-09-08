@@ -1,172 +1,220 @@
-# Mesh PL-NVP 通用运行说明
+# v3.1 Mesh PL-NVP 运行说明
 
-## 1. 隔离范围
+## 1. 版本范围
 
-Mesh PL-NVP 的模型、scaffold 和训练器仍全部位于：
-
-```text
-research/mesh_pl_nvp/
-```
-
-它不会替换或修改 v2.4 的 Affine、Spline、Direct 和 SLIM 方法。通用入口只复用
-v2.4 已经稳定的公共功能：
-
-- OBJ、USD、USDA 输入输出；
-- Tutte 初值；
-- 翻转和自交检查；
-- symmetric Dirichlet、condition number 等评价指标；
-- UV、畸变、面积、翻转、自交和 loss 可视化；
-- `config.json`、`metrics.json`、`summary.json/csv` 输出格式。
-
-PL-NVP 训练保持 `float64`，损失只计算原始三角形。训练不包含 Jacobian barrier、
-自交惩罚和 rollback。若硬合法性断言失败，程序会立即停止并且不保存错误结果。
-
-## 2. 当前默认配置
-
-默认配置文件为：
+v3.1 的入口是：
 
 ```text
-research/mesh_pl_nvp/default.yaml
+research/mesh_pl_nvp/run_harmonic_local.py
 ```
 
-主要参数为：
+它与 v2.4 Affine、Spline、Direct、SLIM 管线隔离，只复用网格 I/O、Tutte
+初值、SD 指标、合法性检查、可视化和汇总工具。v3.1 全程使用 `float64`，
+只优化原始三角形的 3D 面积加权 symmetric Dirichlet；没有 rollback、翻转
+barrier、自交 penalty、scaffold 质量项或 tail-aware 项。
 
-| 参数 | 默认值 | 含义 |
-|---|---:|---|
-| `cycles` | 4 | 完整颜色更新循环数 |
-| `hidden_dim` | 32 | 每个 conditioner 的隐藏宽度 |
-| `conditioner_features` | `basic` | 使用当前表现更好的 8 维输入 |
-| `iters` | 1000 | 与 v2.4 Direct、Affine、Spline 默认训练轮数对齐 |
-| `lr` | 0.003 | Adam 初始学习率 |
-| `lr_schedule` | `adaptive-plateau` | 根据相对 loss 改善自适应降学习率 |
-| `scaffold.enabled` | `true` | 释放原网格边界 |
-| `scaffold.scale` | 1.1 | 当前较稳健的外环尺度 |
-| `geometry_scale` | `true` | 与 v2.4 一致的几何尺度归一化 |
+## 2. 安装与环境检查
 
-## 3. 初值规则
-
-当前只复用 Tutte，不使用 Mean-Value、ABF++ 或自动选择。
-
-不传 `--initial-uv` 时，程序一定重新计算 Tutte。即使输入 USDA 自带 dABF 或其他
-UV，也不会直接采用它：
-
-```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --input data/input/David328/David328.usda `
-  --output data/output/mesh_pl_nvp/David328/David328_mesh_pl_nvp.usda
-```
-
-若要与某个已经保存的 Tutte 初值严格共用同一组坐标，可以显式指定该文件：
-
-```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --input data/input/David328/David328.usda `
-  --initial-uv data/output/v2.4/David328/David328/initial/David328_initial.usda `
-  --output data/output/mesh_pl_nvp/David328/David328_mesh_pl_nvp.usda
-```
-
-显式初值仍会检查顶点数、三角形拓扑、翻转和自交。
-
-## 4. 推荐的小模型验证命令
-
-所有命令都应在仓库根目录执行：
+Windows PowerShell：
 
 ```powershell
 Set-Location F:\Juyong_Zhang\1\try\CODE
+python -m pip install -e ".[test,usd]"
+python -c "import torch; print('torch=', torch.__version__); print('cuda=', torch.cuda.is_available())"
+python -m pytest research/mesh_pl_nvp/tests -q
 ```
 
-David328：
+Linux 服务器：
+
+```bash
+cd /你的路径/CODE
+python -m pip install -e '.[test,usd]'
+python -c "import torch; print('torch=', torch.__version__); print('cuda=', torch.cuda.is_available())"
+python -m pytest research/mesh_pl_nvp/tests -q
+```
+
+如果 `cuda=False`，运行时添加 `--device cpu`；CPU 可以运行，但会明显更慢。
+
+## 3. 发布配置
+
+实际可读取的发布配置为：
+
+```text
+research/mesh_pl_nvp/v3_1_default.yaml
+```
+
+核心值如下：
+
+| 组件 | 默认值 | 作用 |
+|---|---:|---|
+| `harmonic_iters` | 100 | H1 全局/边界模式优化轮数 |
+| `local_iters` | 500 | 中间 mesh-local spline 优化轮数 |
+| `final_harmonic_iters` | 100 | H2 全局精修轮数 |
+| `harmonic_cycles` | 2 | 每个 harmonic stage 的模式循环数 |
+| `local_cycles` | 4 | 局部层的完整颜色更新循环数 |
+| `local_hidden_dim` | 32 | 局部 spline conditioner 隐藏宽度 |
+| `local_latent_transform` | `spline` | exact legal interval 内的条件 RQS |
+| `local_spline_bins` | 8 | 每个一维 RQS 的分段数 |
+| `local_radial_map` | `atanh` | q 风险归一化口径；affine 消融时也控制径向映射 |
+| `frequencies` | 2,3,4,5 | 平滑全局边界 Fourier 模式 |
+| `boundary_hat_counts` | 4,8,16,32 | 多尺度 C0 分片线性边界模式 |
+| `auto_boundary_hat_counts` | `true` | 自动去掉边界采样不足的 hat 尺度 |
+| `scaffold_rings` | 6 | 原边界到固定外环之间的 scaffold 圈数 |
+| `scaffold_scale` | 1.1 | 固定外环包围尺度 |
+| `scaffold_transition_exponent` | 3 | scaffold 几何与位移的过渡指数 |
+| `local_lr` | 0.003 | 局部阶段配置学习率；实际值会经风险预检缩放 |
+| `local_dynamic_risk_threshold` | 0.95 | 超过时动态降低 LR |
+| `local_risk_recovery_threshold` | 0.94 | 低于它且持续稳定后才允许恢复 LR |
+| `local_risk_recovery_patience` | 20 | 恢复前连续安全轮数 |
+| `local_risk_recovery_interval` | 10 | 恢复更新间隔 |
+| `local_risk_recovery_factor` | 1.05 | 每次恢复的 LR 乘数 |
+| `seed` | 20260906 | 五模型发布实验使用的随机种子 |
+| `device` | `cuda` | 默认运行设备 |
+
+YAML 提供默认值，显式命令行选项优先。例如：
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
+  --input data/input/Balls/Balls.obj `
+  --output-dir data/output/mesh_pl_nvp/v3.1/Balls_cpu `
+  --device cpu `
+  --local-iters 50
+```
+
+## 4. 五个模型的完整命令
+
+每个命令使用不同输出目录，避免覆盖已有结果。所有命令都在仓库根目录执行。
+
+### 4.1 Balls
+
+```powershell
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
+  --input data/input/Balls/Balls.obj `
+  --output-dir data/output/mesh_pl_nvp/v3.1/Balls
+```
+
+### 4.2 David328
+
+```powershell
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
   --input data/input/David328/David328.usda `
-  --output data/output/mesh_pl_nvp/David328/David328_mesh_pl_nvp.usda
+  --output-dir data/output/mesh_pl_nvp/v3.1/David328
 ```
 
-NefertitiFace：
+### 4.3 Isis
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
-  --input data/input/NefertitiFace/NefertitiFace.usda `
-  --output data/output/mesh_pl_nvp/NefertitiFace/NefertitiFace_mesh_pl_nvp.usda
-```
-
-Isis：
-
-```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
   --input data/input/Isis/Isis_dABF.usda `
-  --output data/output/mesh_pl_nvp/Isis/Isis_mesh_pl_nvp.usda
+  --output-dir data/output/mesh_pl_nvp/v3.1/Isis
 ```
 
-Cow 规模较大，建议前三个完成后再运行：
+### 4.4 NefertitiFace
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
+  --input data/input/NefertitiFace/NefertitiFace.usda `
+  --output-dir data/output/mesh_pl_nvp/v3.1/NefertitiFace
+```
+
+### 4.5 Cow
+
+```powershell
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
   --input data/input/Cow/Cow_dABF.usda `
-  --output data/output/mesh_pl_nvp/Cow/Cow_mesh_pl_nvp.usda
+  --output-dir data/output/mesh_pl_nvp/v3.1/Cow
 ```
 
-## 5. 固定边界对照
+上述 USDA 文件即使自带 UV，v3.1 也不会直接使用；它会重新生成 Tutte 圆初值。
 
-默认启用 scaffold。增加 `--no-scaffold` 即可得到其他参数完全相同的固定边界对照：
+## 5. 快速冒烟测试
+
+下面只验证安装、输入、前向/反向和输出，不用于比较精度：
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
-  --input data/input/David328/David328.usda `
-  --output data/output/mesh_pl_nvp/David328_fixed/David328_mesh_pl_nvp.usda `
-  --no-scaffold
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
+  --input data/input/Balls/Balls.obj `
+  --output-dir data/output/mesh_pl_nvp/smoke/Balls `
+  --harmonic-iters 5 `
+  --local-iters 10 `
+  --final-harmonic-iters 5
 ```
 
-## 6. 缩短测试或使用 GPU
+## 6. 消融开关
 
-默认已经是与 v2.4 对齐的 1000 轮。若只检查环境、输入和输出是否正常，可以临时缩短为 300 轮：
+关闭 LR recovery，但保留风险降速：
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
-  --input data/input/David328/David328.usda `
-  --output data/output/mesh_pl_nvp/David328_smoke/David328_mesh_pl_nvp.usda `
-  --iters 300
+--no-local-risk-recovery
 ```
 
-若 CUDA 环境支持 PyTorch，可增加：
+同时关闭风险自适应与 recovery：
 
 ```powershell
---device cuda
+--no-local-risk-adaptive --no-local-risk-recovery
 ```
 
-例如：
+改回 affine 局部层：
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
-  --input data/input/Cow/Cow_dABF.usda `
-  --output data/output/mesh_pl_nvp/Cow/Cow_mesh_pl_nvp.usda `
-  --device cuda
+--local-latent-transform affine
 ```
 
-## 7. 输出文件
+缩短或延长中间层：
 
-假设输出为 `David328_mesh_pl_nvp.usda`，同目录还会生成：
+```powershell
+--local-iters 200
+--local-iters 1000
+```
 
-- `.config.json`：本次实际配置；
-- `.metrics.json`：完整初值、最终结果、训练轨迹、q 和扩展网格审计；
-- `.runtime.json`：Tutte、训练、最终审计与制图、完整流程的分段耗时；
-- `.summary.json`、`.summary.csv`：与 v2.4 相同口径的摘要；
-- `.model.pt`：模型参数；
-- `.compare.png`、`.uv.png`：UV 对比和最终网格；
-- `.distortion.png`、`.distortion_compare.png`：畸变分布；
-- `.area_compare.png`：面积变化；
-- `.flip_heatmap.png`、`.intersection_heatmap.png`：合法性结果；
-- `.loss.png`：训练曲线；
-- `.q_hotspots.png`：接近局部合法域边界的热点。
+查看全部选项：
 
-评价优化效果时以原始三角形的 SD、condition number、最小面积、翻转和自交为主。
-scaffold 面不进入损失。`q` 只用于判断合法域余量和数值条件，不是参数化质量指标；
-metrics 中会分别记录原网格内部更新和释放后的原边界更新。
+```powershell
+python -m research.mesh_pl_nvp.run_harmonic_local --help
+```
+
+## 7. 输出结构
+
+假设 `--output-dir data/output/mesh_pl_nvp/v3.1/Balls`，程序生成：
+
+```text
+Balls/
+  two_stage/    # H1 + local spline
+  three_stage/  # H1 + local spline + H2，发布结果以此为准
+```
+
+每个阶段包含：
+
+- `.usda`：参数化网格；
+- `.model.pt`：模型权重；
+- `.config.json`：本次实际参数，包括 YAML 路径和自动筛选后的 hats；
+- `.metrics.json`：初值、训练历史、SD 分布、q/risk、LR 事件、合法性和耗时；
+- `.summary.json`、`.summary.csv`：摘要；
+- `.uv.png`、`.compare.png`、`.boundary_compare.png`：UV 与边界；
+- `.distortion_compare.png`：SD 热图；
+- `.flip_heatmap.png`、`.intersection_heatmap.png`：合法性可视化；
+- `.loss.png`：三阶段 loss 曲线。
+
+发布结果首先看 `three_stage/*.summary.json` 的 area-weighted SD；p95、p99、max
+用于观察尾部，但 v3.1 不显式优化它们。还必须检查原网格和
+`final_extended_injectivity` 均为 0 翻转、0 自交，并确认
+`rollback_enabled=false`。
+
+## 8. 失败处理
+
+- 输入拓扑不是单边界圆盘：程序会在训练前拒绝；需要先切割网格。
+- CUDA OOM：换一个新输出目录并降低 `--intersection-batch-size`，或者改用
+  `--device cpu`；不要覆盖半成品目录。
+- hard area assertion、非有限 loss 或最终合法性失败：保留输出和终端错误用于
+  诊断，不要把它当作可发布结果，也不要用 rollback 掩盖。
+- 中断后当前 runner 不支持精确续训；使用新目录重新运行。
+
+`data/output/` 被 Git 忽略，运行结果只保存在本地。发布到 GitHub 的是代码、
+配置、测试和说明，输入网格仍位于 `data/input/`。

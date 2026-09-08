@@ -7,6 +7,11 @@ from dataclasses import dataclass
 import torch
 from torch import Tensor, nn
 
+from .latent_spline import (
+    LatentSplineConditioner,
+    batched_legal_axis_intervals,
+    interval_spline_coupling,
+)
 from .mesh_coupling import (
     boundary_vertices,
     greedy_vertex_coloring,
@@ -14,7 +19,13 @@ from .mesh_coupling import (
     vertex_adjacency,
     vertex_kernel,
 )
-from .radial_polytope import analytic_center, from_polytope, ray_radius, to_polytope
+from .radial_polytope import (
+    analytic_center,
+    from_polytope,
+    ray_radius,
+    to_polytope,
+    validate_radial_map,
+)
 
 
 class GraphConditioner(nn.Module):
@@ -58,15 +69,22 @@ class MeshCouplingFlow(nn.Module):
         cycles: int = 2,
         hidden_dim: int = 32,
         feature_set: str = "basic",
+        radial_map: str = "softsign",
         max_log_scale: float = 0.08,
         max_shift_fraction: float = 0.04,
         center_iterations: int = 12,
+        latent_transform: str = "affine",
+        spline_bins: int = 8,
+        spline_bound: float = 8.0,
     ) -> None:
         super().__init__()
         if cycles <= 0:
             raise ValueError("cycles must be positive")
         if feature_set not in {"basic", "local-geometry"}:
             raise ValueError("feature_set must be 'basic' or 'local-geometry'")
+        radial_map = validate_radial_map(radial_map)
+        if latent_transform not in {"affine", "spline"}:
+            raise ValueError("latent_transform must be 'affine' or 'spline'")
         self.register_buffer("vertices_3d", vertices_3d)
         self.register_buffer("faces", faces)
         self.register_buffer("initial_uv", initial_uv)
@@ -85,10 +103,14 @@ class MeshCouplingFlow(nn.Module):
 
         self.cycles = cycles
         self.feature_set = feature_set
+        self.radial_map = radial_map
         self.color_count = int(colors.max().item()) + 1
         self.max_log_scale = float(max_log_scale)
         self.max_shift_fraction = float(max_shift_fraction)
         self.center_iterations = int(center_iterations)
+        self.latent_transform = latent_transform
+        self.spline_bins = int(spline_bins)
+        self.spline_bound = float(spline_bound)
         self._adjacency = vertex_adjacency(faces, vertices_3d.shape[0])
         self.register_buffer("local_geometry_features", self._local_geometry_features())
         self._active_sets: list[Tensor] = []
@@ -96,13 +118,28 @@ class MeshCouplingFlow(nn.Module):
             for color in range(self.color_count):
                 active = torch.nonzero((colors == color) & ~boundary, as_tuple=False).flatten()
                 self._active_sets.append(active)
+        self._nonempty_layer_indices = [
+            i for i, active in enumerate(self._active_sets) if active.numel()
+        ]
         feature_dim = 8 if feature_set == "basic" else 14
-        self.conditioners = nn.ModuleList(
-            GraphConditioner(feature_dim=feature_dim, hidden_dim=hidden_dim)
-            for active in self._active_sets
-            if active.numel()
-        )
-        self._nonempty_layer_indices = [i for i, active in enumerate(self._active_sets) if active.numel()]
+        if latent_transform == "affine":
+            self.conditioners = nn.ModuleList(
+                GraphConditioner(feature_dim=feature_dim, hidden_dim=hidden_dim)
+                for _ in self._nonempty_layer_indices
+            )
+        else:
+            self.conditioners = nn.ModuleList(
+                LatentSplineConditioner(
+                    feature_dim=feature_dim,
+                    hidden_dim=hidden_dim,
+                    num_bins=spline_bins,
+                    tail_bound=spline_bound,
+                    transformed_index=layer_index % 2,
+                    dtype=vertices_3d.dtype,
+                    device=vertices_3d.device,
+                )
+                for layer_index in self._nonempty_layer_indices
+            )
         if len(self.conditioners) != len(self._nonempty_layer_indices):
             raise RuntimeError("conditioner construction mismatch")
 
@@ -166,28 +203,100 @@ class MeshCouplingFlow(nn.Module):
         self,
         uv: Tensor,
         active: Tensor,
-        conditioner: GraphConditioner,
+        conditioner: nn.Module,
         *,
         inverse: bool,
     ) -> tuple[Tensor, list[Tensor], list[Tensor]]:
-        raw = conditioner(self._features(uv, active))
-        log_scale = self.max_log_scale * torch.tanh(raw[:, :2])
-        shift = self.max_shift_fraction * self.uv_scale * torch.tanh(raw[:, 2:])
-
         source = uv
+        features = self._features(source, active)
+        kernels: list[tuple[Tensor, Tensor]] = []
+        centers: list[Tensor] = []
+        latents: list[Tensor] = []
+        for vertex_value in active.detach().cpu().tolist():
+            vertex = int(vertex_value)
+            A, b = vertex_kernel(source, self.faces, vertex)
+            center = analytic_center(A, b, iterations=self.center_iterations)
+            kernels.append((A, b))
+            centers.append(center)
+            if self.latent_transform == "affine":
+                latents.append(
+                    from_polytope(
+                        source[vertex], A, b, center, radial_map=self.radial_map
+                    )
+                )
+        center_batch = torch.stack(centers)
+        if self.latent_transform == "spline":
+            if not isinstance(conditioner, LatentSplineConditioner):
+                raise TypeError("spline transform requires a spline conditioner")
+            transformed_index = conditioner.transformed_index
+            retained_index = 1 - transformed_index
+            lower_values: list[Tensor] = []
+            upper_values: list[Tensor] = []
+            for local_index, vertex_value in enumerate(
+                active.detach().cpu().tolist()
+            ):
+                A, b = kernels[local_index]
+                mask = torch.ones_like(b, dtype=torch.bool)
+                lower, upper = batched_legal_axis_intervals(
+                    source[int(vertex_value)][None, :],
+                    A[None, :, :],
+                    b[None, :],
+                    mask[None, :],
+                    transformed_index=transformed_index,
+                )
+                lower_values.append(lower[0])
+                upper_values.append(upper[0])
+            active_points = source[active]
+            mapped_coordinate = interval_spline_coupling(
+                active_points[:, transformed_index],
+                torch.stack(lower_values),
+                torch.stack(upper_values),
+                (active_points[:, retained_index] - self.uv_center[retained_index])
+                / self.uv_scale,
+                features,
+                conditioner,
+                inverse=inverse,
+            )
+            transformed_batch = active_points.clone()
+            transformed_batch[:, transformed_index] = mapped_coordinate
+        else:
+            if not isinstance(conditioner, GraphConditioner):
+                raise TypeError("affine transform requires a graph conditioner")
+            latent_batch = torch.stack(latents)
+            raw = conditioner(features)
+            log_scale = self.max_log_scale * torch.tanh(raw[:, :2])
+            shift = self.max_shift_fraction * self.uv_scale * torch.tanh(raw[:, 2:])
+            if self.radial_map == "atanh":
+                transformed_batch = (
+                    center_batch
+                    + (latent_batch - center_batch - shift) * torch.exp(-log_scale)
+                    if inverse
+                    else center_batch
+                    + (latent_batch - center_batch) * torch.exp(log_scale)
+                    + shift
+                )
+            elif inverse:
+                transformed_batch = (latent_batch - shift) * torch.exp(-log_scale)
+            else:
+                transformed_batch = latent_batch * torch.exp(log_scale) + shift
+
         result = uv.clone()
         q_values: list[Tensor] = []
         slacks: list[Tensor] = []
         for local_index, vertex_value in enumerate(active.detach().cpu().tolist()):
             vertex = int(vertex_value)
-            A, b = vertex_kernel(source, self.faces, vertex)
-            center = analytic_center(A, b, iterations=self.center_iterations)
-            latent = from_polytope(source[vertex], A, b, center)
-            if inverse:
-                transformed = (latent - shift[local_index]) * torch.exp(-log_scale[local_index])
+            A, b = kernels[local_index]
+            center = centers[local_index]
+            if self.latent_transform == "spline":
+                mapped = transformed_batch[local_index]
             else:
-                transformed = latent * torch.exp(log_scale[local_index]) + shift[local_index]
-            mapped = to_polytope(transformed, A, b, center)
+                mapped = to_polytope(
+                    transformed_batch[local_index],
+                    A,
+                    b,
+                    center,
+                    radial_map=self.radial_map,
+                )
             result[vertex] = mapped
 
             delta = mapped - center
@@ -219,12 +328,17 @@ class MeshCouplingFlow(nn.Module):
         all_vertex_ids: list[Tensor] = []
         all_layer_ids: list[Tensor] = []
         for active_index, conditioner in layers:
-            result, q_values, slacks = self._sublayer(
-                result,
-                self._active_sets[active_index],
-                conditioner,
-                inverse=inverse,
-            )
+            try:
+                result, q_values, slacks = self._sublayer(
+                    result,
+                    self._active_sets[active_index],
+                    conditioner,
+                    inverse=inverse,
+                )
+            except ValueError as error:
+                raise ValueError(
+                    f"mesh coupling layer {active_index} (inverse={inverse}) failed: {error}"
+                ) from error
             all_q.extend(q_values)
             all_slacks.extend(slacks)
             active = self._active_sets[active_index]

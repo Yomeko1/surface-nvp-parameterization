@@ -7,6 +7,12 @@ from dataclasses import dataclass
 import torch
 from torch import Tensor
 
+from .latent_spline import (
+    LatentSplineConditioner,
+    batched_legal_axis_intervals,
+    interval_spline_coupling,
+)
+from .radial_polytope import validate_radial_map
 from .trainable_coupling import CouplingDiagnostics, GraphConditioner, MeshCouplingFlow
 
 
@@ -200,25 +206,54 @@ def _radius_direction(delta: Tensor) -> tuple[Tensor, Tensor, Tensor]:
     return radius, direction, nonzero
 
 
-def batched_from_polytope(points: Tensor, A: Tensor, b: Tensor, center: Tensor, mask: Tensor) -> Tensor:
+def batched_from_polytope(
+    points: Tensor,
+    A: Tensor,
+    b: Tensor,
+    center: Tensor,
+    mask: Tensor,
+    *,
+    radial_map: str = "softsign",
+) -> Tensor:
+    radial_map = validate_radial_map(radial_map)
     delta = points - center
     radius, direction, nonzero = _radius_direction(delta)
     boundary_radius = batched_ray_radius(direction, A, b, center, mask)
     fraction = radius / boundary_radius
     if bool(torch.any(fraction.detach() >= 1.0)):
-        raise ValueError("a batched input point lies on or outside its polygon")
-    unsquashed = fraction / (1.0 - fraction)
+        maximum_fraction = float(fraction.detach().amax())
+        offending = int(torch.count_nonzero(fraction.detach() >= 1.0))
+        raise ValueError(
+            "a batched input point lies on or outside its polygon: "
+            f"max_fraction={maximum_fraction:.17g}, offending={offending}"
+        )
+    if radial_map == "softsign":
+        unsquashed = fraction / (1.0 - fraction)
+    else:
+        unsquashed = torch.atanh(fraction)
     latent = center + (boundary_radius * unsquashed)[:, None] * direction
     center_limit = center + delta
     return torch.where(nonzero[:, None], latent, center_limit)
 
 
-def batched_to_polytope(latent: Tensor, A: Tensor, b: Tensor, center: Tensor, mask: Tensor) -> Tensor:
+def batched_to_polytope(
+    latent: Tensor,
+    A: Tensor,
+    b: Tensor,
+    center: Tensor,
+    mask: Tensor,
+    *,
+    radial_map: str = "softsign",
+) -> Tensor:
+    radial_map = validate_radial_map(radial_map)
     delta = latent - center
     radius, direction, nonzero = _radius_direction(delta)
     boundary_radius = batched_ray_radius(direction, A, b, center, mask)
     relative_radius = radius / boundary_radius
-    squashed = relative_radius / (1.0 + relative_radius)
+    if radial_map == "softsign":
+        squashed = relative_radius / (1.0 + relative_radius)
+    else:
+        squashed = torch.tanh(relative_radius)
     mapped = center + (boundary_radius * squashed)[:, None] * direction
     center_limit = center + delta
     return torch.where(nonzero[:, None], mapped, center_limit)
@@ -259,24 +294,71 @@ class BatchedMeshCouplingFlow(MeshCouplingFlow):
         self,
         uv: Tensor,
         active: Tensor,
-        conditioner: GraphConditioner,
+        conditioner: torch.nn.Module,
         *,
         inverse: bool,
     ) -> tuple[Tensor, list[Tensor], list[Tensor]]:
         key = tuple(int(value) for value in active.detach().cpu().tolist())
         topology = self._topology_by_key[key].on(uv.device)
-        raw = conditioner(self._features_batched(uv, topology))
-        log_scale = self.max_log_scale * torch.tanh(raw[:, :2])
-        shift = self.max_shift_fraction * self.uv_scale * torch.tanh(raw[:, 2:])
+        features = self._features_batched(uv, topology)
 
         A, b, mask = batched_vertex_kernels(uv, topology)
         center = batched_analytic_center(A, b, mask, iterations=self.center_iterations)
-        latent = batched_from_polytope(uv[topology.active], A, b, center, mask)
-        if inverse:
-            transformed = (latent - shift) * torch.exp(-log_scale)
+        if self.latent_transform == "spline":
+            if not isinstance(conditioner, LatentSplineConditioner):
+                raise TypeError("spline transform requires a spline conditioner")
+            transformed_index = conditioner.transformed_index
+            retained_index = 1 - transformed_index
+            active_points = uv[topology.active]
+            lower, upper = batched_legal_axis_intervals(
+                active_points,
+                A,
+                b,
+                mask,
+                transformed_index=transformed_index,
+            )
+            mapped_coordinate = interval_spline_coupling(
+                active_points[:, transformed_index],
+                lower,
+                upper,
+                (active_points[:, retained_index] - self.uv_center[retained_index])
+                / self.uv_scale,
+                features,
+                conditioner,
+                inverse=inverse,
+            )
+            mapped = active_points.clone()
+            mapped[:, transformed_index] = mapped_coordinate
         else:
-            transformed = latent * torch.exp(log_scale) + shift
-        mapped = batched_to_polytope(transformed, A, b, center, mask)
+            if not isinstance(conditioner, GraphConditioner):
+                raise TypeError("affine transform requires a graph conditioner")
+            latent = batched_from_polytope(
+                uv[topology.active],
+                A,
+                b,
+                center,
+                mask,
+                radial_map=self.radial_map,
+            )
+            raw = conditioner(features)
+            log_scale = self.max_log_scale * torch.tanh(raw[:, :2])
+            shift = self.max_shift_fraction * self.uv_scale * torch.tanh(raw[:, 2:])
+            if self.radial_map == "atanh":
+                if inverse:
+                    transformed = center + (latent - center - shift) * torch.exp(
+                        -log_scale
+                    )
+                else:
+                    transformed = (
+                        center + (latent - center) * torch.exp(log_scale) + shift
+                    )
+            elif inverse:
+                transformed = (latent - shift) * torch.exp(-log_scale)
+            else:
+                transformed = latent * torch.exp(log_scale) + shift
+            mapped = batched_to_polytope(
+                transformed, A, b, center, mask, radial_map=self.radial_map
+            )
         result = uv.index_copy(0, topology.active, mapped)
 
         delta = mapped - center

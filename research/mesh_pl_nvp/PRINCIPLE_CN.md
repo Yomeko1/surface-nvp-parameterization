@@ -1,8 +1,8 @@
-# v3.0 Mesh-aligned PL-NVP：从 rollback 问题到完整管线
+# v3.1 Mesh-aligned PL-NVP：从 rollback 问题到完整管线
 
 本文按“旧方法为什么不足 → 直接修改会产生什么新问题 → 如何解决 → 又产生什么问题”的顺序，说明 `research/mesh_pl_nvp` 的动机、结构保证、数值实现和完整运行管线。
 
-这套方法是 v3.0 的独立研究管线。它没有改动保留的 v2.4 Affine/Spline NVP 训练代码；只复用了 v2.4 的 Tutte 初值、网格 I/O、评价指标、可视化和汇总工具。v3.0 的 PL-NVP 训练器不含 rollback。
+这套方法是独立于 v2.4 的研究管线。v3.0 首先实现了 mesh-aligned PL-NVP 的结构合法性；v3.1 在不改变该保证的前提下，加入 H1–Spline–H2 三阶段组合、多圈 scaffold、多尺度 C0 边界模式、exact legal-interval spline 和风险缓解后的学习率恢复。它没有改动保留的 v2.4 Affine/Spline NVP 训练代码，只复用 Tutte 初值、网格 I/O、评价指标、可视化和汇总工具。v3.1 训练器仍不含 rollback。
 
 ## 1. 问题链总览
 
@@ -13,10 +13,12 @@
 3. **把每个顶点限制在一环合法域 (K_i) 内。** 该域是若干半平面的交，点留在其中即可保持相邻三角形为正；但相邻顶点同时移动会让彼此的合法域同时变化，显式逆无法重建。
 4. **用 proper coloring 分批更新独立顶点。** 同色顶点互不相邻，每个三角形在一个子层中至多移动一个顶点，正向和反向都能重算相同的 (K_i)；但 (K_i) 有界，而 NVP latent 空间是无界的。
 5. **用径向 homeomorphism (psi_{K_i}) 共轭 NVP coupling。** 它在 (operatorname{int}K_i) 与 (mathbb R^2) 之间建立显式双射，有限网络输出必定回到合法域；但局部正面积本身还不足以在一般边界条件下推出全局无自交。
-6. **固定扩展网格的简单外边界，并用 scaffold 释放原边界。** 扩展圆盘上“所有面正定向 + 边界双射”给出全局单射；原边界成为可移动内点，结束后丢弃 scaffold。但径向坐标靠近合法域边界时会病态。
-7. **限制层输出并监测 (q)、面积和梯度。** 使用 `float64`、小尺度 coupling、梯度裁剪和只调学习率的自适应策略提高数值稳定性；任何合法性失败都会终止运行，而不是回退参数。
+6. **固定扩展网格的简单外边界，并用 scaffold 释放原边界。** 扩展圆盘上“所有面正定向 + 边界双射”给出全局单射；原边界成为可移动内点，结束后丢弃 scaffold。但单圈 scaffold 和纯局部更新仍难以产生足够丰富的整体边界变化。
+7. **加入可认证的全局 harmonic/boundary modes，并用多圈 scaffold 传递边界运动。** 每个全局模式只更新一个标量系数，其保持所有面积为正的连通区间可以精确求出；H1 先调整全局形状，局部层优化细节，H2 再精修。C0 boundary hats 不要求边界平滑，并按 mesh 边界采样自动筛掉不受支持的尺度。
+8. **把局部 affine coupling 扩展为 exact legal-interval spline。** 固定一个坐标后，另一个坐标在 (K_i) 中的合法区间可以精确求出；通过 `atanh` chart 和单调 rational-quadratic spline 更新该坐标，再映回区间，增强表达能力且不离开合法域。
+9. **限制层输出并监测 (q)、面积和梯度。** 使用 `float64`、梯度裁剪、mesh-specific 安全峰值、风险降速和带滞回的 LR recovery；任何合法性失败都会终止运行，而不是回退参数。
 
-因此，v3.0 的核心不是“检测到非法后把一步撤销”，而是“每一个可执行的网络层在结构上只能产生合法扩展网格”。
+因此，v3.1 的核心仍不是“检测到非法后把一步撤销”，而是“每一个可执行的网络层在结构上只能产生合法扩展网格”；新增组件只扩大这一合法可达集合中的表达能力和改善优化效率。
 
 ## 2. 为什么连续 NVP 仍然需要 rollback
 
@@ -151,11 +153,12 @@ r=\|x-c\|,
 \qquad q=\frac{r}{\rho_K(d)}\in[0,1).
 \]
 
-使用正半轴 softsign 及其逆，得到
+v3.0 使用正半轴 softsign。v3.1 的 affine 消融默认改用更缓和的 `atanh/tanh`
+径向对：
 
 \[
 \boxed{
-\psi_K(x)=c+\rho_K(d)\frac{q}{1-q}d
+\psi_K(x)=c+\rho_K(d)\operatorname{atanh}(q)d
 }
 \]
 
@@ -164,18 +167,18 @@ r=\|x-c\|,
 \[
 \boxed{
 \psi_K^{-1}(z)=c+\rho_K(d)
-\frac{\|z-c\|}{\rho_K(d)+\|z-c\|}d
+\tanh\!\left(\frac{\|z-c\|}{\rho_K(d)}\right)d
 }.
 \]
 
-任意有限 (z) 都被映到 (K) 的严格内部，所以网络不可能把顶点放到合法域边界或外部。代码中的命名为：
+任意有限 (z) 都被映到 (K) 的严格内部，所以网络不可能把顶点放到合法域边界或外部。softsign 仍作为可选消融保留。代码中的命名为：
 
 | 数学映射 | 代码函数 | 方向 |
 |---|---|---|
 | (psi_K) | `from_polytope` | (K\rightarrow\mathbb R^2) |
 | (psi_K^{-1}) | `to_polytope` | (mathbb R^2\rightarrow K) |
 
-## 7. 第五步：在 latent 空间执行 Real NVP coupling
+## 7. 第五步：在合法 latent 坐标中执行 affine 或 spline coupling
 
 活动顶点 (i) 的邻点在当前颜色子层中固定。先计算 (K_i)，再由冻结邻域产生 (s_i,t_i)：
 
@@ -199,7 +202,32 @@ u_i=\psi_{K_i}^{-1}(z_i).
 
 中间的 affine coupling 直接沿用 [Real NVP](https://arxiv.org/abs/1605.08803)。让 conditioner 遵循图邻接关系与 [Graphical Normalizing Flows](https://arxiv.org/abs/2006.02548) 有关，但几何合法性来自 (K_i)，不是来自图网络本身。
 
-### 7.1 Conditioner 的实际输入和输出
+### 7.1 v3.1 的 exact legal-interval spline
+
+完整二维径向 affine coupling 合法但表达能力有限。v3.1 默认采用一维条件
+rational-quadratic spline，并在不同子层交替更新 x/y 坐标。以更新 x 为例，固定当前
+y 后，将 (K_i) 的所有半平面约束沿水平线求交，可精确得到
+
+\[
+x_i\in(\ell_i(y_i),u_i(y_i)).
+\]
+
+先把合法区间标准化到 (-1,1)，再用
+
+\[
+z_i=\operatorname{atanh}\!\left(
+2\frac{x_i-\ell_i}{u_i-\ell_i}-1
+\right)
+\]
+
+映射到实数轴。conditioner 根据冻结邻域和保留坐标预测单调 RQS 的 widths、heights
+和 derivatives；默认 8 个 bins。最后通过 `tanh` 和区间仿射变换映回
+((\ell_i,u_i))。单调 RQS 的构造来自
+[Neural Spline Flows](https://arxiv.org/abs/1906.04032)，而“每步重算精确合法区间”是
+本 mesh-aligned 版本维持离散合法性的关键。任何有限 latent 输出都严格落在区间内部，
+所以 spline 增强表达能力而不需要 rollback。
+
+### 7.2 Conditioner 的实际输入和输出
 
 默认 `basic` 特征每个顶点共 8 维：
 
@@ -218,7 +246,8 @@ Linear(input_dim, hidden_dim)
 → Linear(hidden_dim, 4)
 ```
 
-最后一层零初始化，使初始网络接近恒等映射。前两个输出形成 log-scale，后两个输出形成 shift：
+最后一层零初始化，使初始网络接近恒等映射。affine 路径的前两个输出形成
+log-scale、后两个输出形成 shift：
 
 \[
 s=s_{\max}\tanh(\widehat s),
@@ -226,7 +255,10 @@ s=s_{\max}\tanh(\widehat s),
 t=t_{\max}\,L_{uv}\tanh(\widehat t).
 \]
 
-其中 `max_log_scale` 是 (s_{\max})，`max_shift_fraction` 是相对 UV 尺度的 (t_{\max})。可选 `local-geometry` 再加入 6 个静态 3D 局部统计：邻边长度的 mean/std/min/max，以及关联面面积的 mean/sum。现有消融中它没有改善最终 area-weighted SD，所以默认仍为 `basic`。
+其中 `max_log_scale` 是 (s_{\max})，`max_shift_fraction` 是相对 UV 尺度的
+(t_{\max})。spline 路径则输出 8 个 bins 对应的 widths、heights 和内部
+derivatives，并由 softmax/softplus 保证单调。可选 `local-geometry` 再加入 6 个静态
+3D 局部统计；现有消融中它没有改善最终 area-weighted SD，所以默认仍为 `basic`。
 
 **随之出现的问题：** 所有原始面局部正定向，在一般拓扑和任意边界映射下仍不能单独推出全局无重叠；必须把边界条件和拓扑假设写清楚。
 
@@ -243,17 +275,36 @@ t=t_{\max}\,L_{uv}\tanh(\widehat t).
 
 ## 9. 第七步：scaffold 释放原网格边界
 
-本实现采用一圈 scaffold：
+v3.0 采用一圈 scaffold；v3.1 默认采用 6 圈过渡 scaffold：
 
 1. 提取原网格有序边界；
-2. 在其外部建立与边界顶点一一对应的固定凸外环；
-3. 将原边界与外环三角化连接成 annulus；
-4. 原边界因此成为扩展圆盘的内部顶点，可以参与 PL-NVP 更新；
-5. 最终只输出原始顶点和原始面，丢弃 scaffold。
+2. 在其外部建立与边界顶点一一对应的固定凸外环，默认 scale 为 1.1；
+3. 在原边界和外环间插入 5 个可移动过渡环并三角化连接；
+4. 过渡位置按 ((r/6)^3) 分布，全局模式位移按对应的几何权重逐圈衰减到 0；
+5. 原边界因此成为扩展圆盘的内部顶点，可以参与所有 PL-NVP 更新；
+6. 最终只输出原始顶点和原始面，丢弃 scaffold。
 
 这种“用外部单纯复形把全局碰撞约束转成扩展网格局部可注入约束”的动机来自 Jiang、Schaefer、Panozzo 的 [Simplicial Complex Augmentation Framework for Bijective Maps](https://people.engr.tamu.edu/schaefer/research/scaffold.pdf)。当前实现使用较简单的一一对应凸外环，而不是复现论文的全部 scaffold 优化算法。
 
 SD loss 只在原始三角形上计算；scaffold 面不追求形状质量，只负责让原边界可动并维持全局单射证明。因此评价时也应重点看原始面，不能让辅助三角形的高畸变掩盖原网格质量。
+
+### 9.1 为什么增加 H1 和 H2
+
+纯局部颜色更新能够表达复杂变形，但整体边界运动传播慢，容易在较少训练轮数内停留在
+Tutte 圆附近。v3.1 预计算一组离散 harmonic 位移模式：边界端指定运动，内部通过
+Laplacian 调和延拓。沿一个固定模式改变标量系数时，每个三角形面积是该系数的二次
+多项式，因此可以精确求出包含当前位置、且所有面保持正面积的连通合法区间。将系数经
+`atanh/tanh` 映到实轴做有界 affine coupling，仍然具有显式逆和结构合法性。
+
+H1 在局部 spline 前快速调整全局形状与边界；H2 在局部细节优化后再做全局精修。两者
+优化同一个原始面 area-weighted SD，不增加边界或 scaffold 质量损失。
+
+### 9.2 C0 boundary hats
+
+低频 Fourier 模式较平滑，难以形成 SLIM 常见的非光滑分段边界。v3.1 额外加入
+4/8/16/32 控制数的多尺度分片线性 hat modes。它们只要求边界连续，不要求导数连续。
+若某个 mesh 的边界顶点不足以实际采样某一级 hats，支持度预检会自动删除该尺度；例如
+David328 和 Isis 的发布实验自动使用 4/8/16，而不是人为设置 mesh 特供参数。
 
 **随之出现的问题：** 顶点虽然始终在 (K_i) 内，但接近其边界时径向坐标会变得病态。
 
@@ -273,15 +324,23 @@ q_{\max}=\max_i q_i.
 
 由于 (q/(1-q)\to\infty)，高 (q) 意味着 latent 值、逆向误差和梯度敏感性可能迅速增大。它主要是**数值条件与退化风险指标**，不是畸变指标：低 (q) 不保证低 SD，高 (q<1) 也仍然合法。
 
-本实现采用以下措施：
+v3.1 采用以下措施：
 
 - 全流程使用 `torch.float64`；
-- `max_log_scale` 和 `max_shift_fraction` 限制每层 coupling 强度；
+- `max_log_scale`、`max_shift_fraction` 和 spline 单调参数化限制每层行为；
 - 使用 gradient clipping；
 - 每一步断言扩展网格所有有向面积为正且数值有限；
 - 持续记录 (q_{max})、最小面积、最小面积比和 slack；
-- adaptive plateau 只在损失停滞或几何接近风险阈值时降低学习率；
+- 根据初始 `conditioning_risk_max` 把配置 LR 缩放成该 mesh 的安全峰值；
+- 高风险初值使用 100-step warm-up，从安全峰值的 25% 逐步升高；
+- 训练中风险超过 0.95 时动态降低 LR；
+- 风险降到 0.94 以下并连续保持 20 steps 后，每 10 steps 将 LR 乘 1.05，最高不超过安全峰值；风险重新升高就重置 patience；
 - 若硬合法性断言失败，运行直接报错且不保存非法结果，不撤销一步继续训练。
+
+`softsign` 下直接用 (q) 作为风险；`atanh` 下使用
+(1-\sqrt{1-q^2}) 将其换算到共同的 ([0,1]) 灵敏度尺度。该量仍只是条件风险，不是
+SD。风险恢复机制在五模型验证中只在 Cow 上触发；其余模型条件不满足时保持原轨迹，
+所以它是通用控制规则而非 Cow 名称分支。
 
 这与 rollback 有本质区别：学习率调整只改变后续步长，合法性仍由层结构保证；训练器不存在“候选非法 → 恢复旧参数”的分支。
 
@@ -316,10 +375,10 @@ E_f=\sum_{k=1}^{2}
 通用入口为：
 
 ```powershell
-python -m research.mesh_pl_nvp.run_pipeline `
-  --config research/mesh_pl_nvp/default.yaml `
+python -m research.mesh_pl_nvp.run_harmonic_local `
+  --config research/mesh_pl_nvp/v3_1_default.yaml `
   --input data/input/David328/David328.usda `
-  --output data/output/mesh_pl_nvp/David328/David328_mesh_pl_nvp.usda
+  --output-dir data/output/mesh_pl_nvp/v3.1/David328
 ```
 
 执行顺序如下：
@@ -328,74 +387,75 @@ python -m research.mesh_pl_nvp.run_pipeline `
 2. 检查连通、边流形、单边界环和圆盘 Euler characteristic；
 3. 若未显式传入 `--initial-uv`，无论文件中是否已有 UV，都重新计算 Tutte 圆边界初值；当前不接入 Mean-Value 或 ABF++；
 4. 根据 `geometry_scale` 归一化几何尺度并验证初值 0 翻转、0 自交；
-5. 默认建立 scale 1.1 的 scaffold，并固定最外凸环；
-6. 对扩展网格着色，建立多 cycle 的 mesh-aligned PL-NVP；
-7. 使用 Adam 优化原始面 SD，默认 1000 iterations；每一步保持硬合法，不使用 rollback；
-8. 反向通过全部 coupling layers，测量 round-trip 误差；
-9. 对最终原网格和扩展网格进行翻转、自交、面积、(q) 和畸变检查；
-10. 保存网格、配置、模型状态、JSON/CSV 指标、汇总和诊断图。
+5. 建立 scale 1.1、6 圈、指数 3 的 scaffold，并固定最外凸环；
+6. 构造 Fourier 与 C0 boundary-hat harmonic modes，自动去掉边界采样不足的 hat 尺度；
+7. H1 使用 Adam 优化 100 iterations，所有模式系数限制在精确正面积区间；
+8. 对扩展网格着色，使用 exact legal-interval spline PL-NVP 优化 500 iterations；局部 LR 经过初始风险缩放、warm-up、动态降速和可选恢复；
+9. H2 再使用同一组可认证 harmonic modes 优化 100 iterations；
+10. 反向通过全部 coupling layers，测量 round-trip 误差；
+11. 对最终原网格和扩展网格进行翻转、自交、面积、(q)、risk 和畸变检查；
+12. 在 `two_stage/` 与 `three_stage/` 分别保存中间和最终结果、模型、实际配置、JSON/CSV 指标与诊断图。
 
-若使用已有模型继续训练，可以额外指定：
+## 13. v3.1 默认参数及含义
 
-```powershell
---initial-model-state path\to\model_state.pt
-```
-
-## 13. 默认参数及含义
-
-默认配置文件是 `research/mesh_pl_nvp/default.yaml`。
+可执行配置文件是 `research/mesh_pl_nvp/v3_1_default.yaml`。YAML 提供默认值，
+显式命令行参数优先；未知配置键会报错，避免静默拼写错误。
 
 ### 13.1 初值
 
 | 参数 | 默认值 | 含义 |
 |---|---:|---|
-| `init.boundary` | `circle` | Tutte 初值的边界形状 |
-| `init.geometry_scale` | `true` | 按几何尺度归一化，减少不同 mesh 的量纲差异 |
-| `init.initial_uv` | `null` | 不提供外部 UV，强制使用 Tutte；命令行可覆盖 |
+| 初值方法 | `Tutte` | 固定使用具有凸圆边界的合法初值 |
+| 边界 | `circle` | Tutte 初值边界形状 |
+| geometry scale | `true` | 按几何尺度归一化，减少不同 mesh 的量纲差异 |
 
-### 13.2 模型
-
-| 参数 | 默认值 | 含义 |
-|---|---:|---|
-| `model.cycles` | `4` | 完整遍历所有颜色的次数；越大表达能力越强、计算越慢 |
-| `model.hidden_dim` | `32` | conditioner MLP 的隐藏维度 |
-| `model.conditioner_features` | `basic` | 使用 8 维基本特征；可选 `local-geometry` |
-| `model.max_log_scale` | `0.08` | 限制 affine coupling 的 log-scale 绝对值 |
-| `model.max_shift_fraction` | `0.04` | 限制 shift 相对 UV 尺度的比例 |
-| `model.center_iterations` | `12` | 每次动态 (K_i) analytic center 的 Newton 迭代数 |
-
-### 13.3 训练和自适应学习率
+### 13.2 三阶段与局部模型
 
 | 参数 | 默认值 | 含义 |
 |---|---:|---|
-| `train.seed` | `20260830` | 随机种子 |
-| `train.iterations` | `1000` | Adam 更新次数，与 v2.4 的主要方法对齐 |
-| `train.lr` | `0.003` | 初始学习率 |
-| `train.device` | `cpu` | 默认设备；可按环境改为 CUDA |
-| `train.check_interval` | `10` | 记录完整诊断指标的步数间隔 |
-| `train.gradient_clip` | `10.0` | 全局梯度范数裁剪阈值 |
-| `train.lr_schedule` | `adaptive-plateau` | 按 mesh 实际损失平台自适应降学习率 |
-| `train.min_lr` | `0.0001` | 学习率下限 |
-| `train.plateau_window` | `100` | 比较损失改善所用窗口长度 |
-| `train.plateau_patience` | `2` | 连续多少个窗口改善不足才衰减 |
-| `train.plateau_relative_threshold` | `0.008` | 窗口相对改善低于 0.8% 视为平台 |
-| `train.plateau_factor` | `0.5` | 每次衰减乘数 |
-| `train.plateau_q_threshold` | `0.97` | 接近合法域边界的风险阈值 |
-| `train.plateau_minimum_area_ratio` | `0.25` | 相对初始最小面积的风险阈值 |
-| `train.intersection_batch_size` | `262144` | 全局边相交检查的分批规模，主要影响内存和速度 |
+| `harmonic_iters` | `100` | H1 全局/边界优化轮数 |
+| `local_iters` | `500` | 中间 exact-interval spline 优化轮数 |
+| `final_harmonic_iters` | `100` | H2 全局精修轮数 |
+| `harmonic_cycles` | `2` | 每个 harmonic stage 的模式循环数 |
+| `local_cycles` | `4` | 局部层完整颜色循环数 |
+| `local_hidden_dim` | `32` | spline conditioner 隐藏维度 |
+| `local_latent_transform` | `spline` | 使用单调 RQS；`affine` 保留为消融 |
+| `local_spline_bins` | `8` | 一维 spline 分段数 |
+| `local_center_iterations` | `12` | 每次动态 (K_i) analytic center Newton 轮数 |
 
-### 13.4 Scaffold 与输出
+### 13.3 训练和风险学习率
 
 | 参数 | 默认值 | 含义 |
 |---|---:|---|
-| `scaffold.enabled` | `true` | 使用自由原边界的扩展网格 |
-| `scaffold.scale` | `1.1` | 固定凸外环相对原边界包围尺度 |
-| `io.prim_path` | `null` | USD prim 路径；为空时按读取器默认规则选择 |
-| `io.save_model` | `true` | 保存 `model_state.pt` 以便复现或续训 |
+| `seed` | `20260906` | 五模型发布实验随机种子 |
+| `harmonic_lr` | `0.02` | H1/H2 Adam 学习率 |
+| `local_lr` | `0.003` | 局部配置 LR；实际安全峰值由初始风险缩放 |
+| `local_risk_threshold` | `0.85` | 启用初始风险缩放和 warm-up 的阈值 |
+| `local_risk_warmup_iters` | `100` | 高风险初值 warm-up 长度 |
+| `local_dynamic_risk_threshold` | `0.95` | 训练中超过它就动态降速 |
+| `local_risk_recovery_threshold` | `0.94` | 低于它才累计恢复 patience，与 0.95 形成滞回 |
+| `local_risk_recovery_patience` | `20` | 首次恢复前连续安全 steps |
+| `local_risk_recovery_interval` | `10` | 后续恢复间隔 |
+| `local_risk_recovery_factor` | `1.05` | 每次 LR 恢复乘数；不超过安全峰值 |
+| `gradient_clip` | `10.0` | 全局梯度范数裁剪阈值 |
+| `device` | `cuda` | 默认设备；无 CUDA 时显式改为 `cpu` |
+
+### 13.4 边界与 Scaffold
+
+| 参数 | 默认值 | 含义 |
+|---|---:|---|
+| `frequencies` | `2,3,4,5` | radial Fourier 全局模式频率 |
+| `boundary_hat_counts` | `4,8,16,32` | 多尺度 C0 边界控制数 |
+| `auto_boundary_hat_counts` | `true` | 自动删除采样不足的 hats |
+| `scaffold_scale` | `1.1` | 固定凸外环包围尺度 |
+| `scaffold_rings` | `6` | 原边界到固定外环的总圈数 |
+| `scaffold_transition_exponent` | `3.0` | 过渡几何与模式衰减指数 |
+| `scaffold_mode_profile` | `geometric` | 模式位移与 scaffold 几何一致过渡 |
 
 ## 14. 输出、评价指标与结果报告
 
-每次通用运行会保存：
+每次通用运行在 `two_stage/` 与 `three_stage/` 分别保存 H1+local 和
+H1+local+H2。发布结果以 `three_stage/` 为准，包括：
 
 - 优化后的 mesh；
 - 实际使用的 config；
@@ -403,18 +463,23 @@ python -m research.mesh_pl_nvp.run_pipeline `
 - JSON/CSV summary；
 - runtime 和训练轨迹；
 - `model_state.pt`；
-- UV、SD/面积/相交、loss 和 (q)-hotspot 图。
+- UV、边界、SD、翻转、相交和 loss 图。
 
-主要质量指标包括 area-weighted SD、mean/median/p95/max SD、最小有向二倍面积、翻转数、非邻接边相交数和 round-trip 误差；同时记录训练耗时、学习率事件、(q_{max}) 及热点一环，便于区分“畸变未充分优化”和“径向映射接近数值边界”。
+当前主指标是原始面的 area-weighted mean SD。median/p95/p99/max 只作为分布诊断，
+因为 v3.1 没有 tail-aware loss；因此极端 SD 可以轻微变差而整体 SD 下降。合法性还要
+同时检查原网格与扩展 scaffold 的翻转、自交和最小面积，并确认 round-trip error 与
+`rollback_enabled=false`。metrics 同时记录训练耗时、风险降速/恢复事件和 (q_{max})。
 
 本地结果报告与结果放在一起：
 
 ```text
 data/output/mesh_pl_nvp/BALLS_EXPERIMENT_CN.md
 data/output/mesh_pl_nvp/SIMPLE_MODELS_1000_CN.md
+data/output/mesh_pl_nvp/latent_spline_local_iterations_20260907/LOCAL_ITERATIONS_500_CN.md
+data/output/mesh_pl_nvp/risk_lr_recovery_20260908/RISK_LR_RECOVERY_CN.md
 ```
 
-`data/output/` 被 Git 忽略，因此这些实验结果和报告仅保留在本机；v3.0 仓库只提交实现、配置、测试和方法说明。
+`data/output/` 被 Git 忽略，因此这些实验结果和报告仅保留在本机；v3.1 仓库只提交实现、配置、测试和方法说明。
 
 ## 15. 当前保证与限制
 
@@ -426,24 +491,30 @@ data/output/mesh_pl_nvp/SIMPLE_MODELS_1000_CN.md
 - 扩展圆盘全局单射，因而原网格部分也无翻转、无自交；
 - 训练无需 rollback、翻转 barrier 或相交 penalty。
 
+发布配置在 Balls、Cow、David328、Isis、NefertitiFace 上均得到原网格和 scaffold
+0 翻转、0 自交。局部 200 增至 500 iterations 后，五个模型的整体 SD 均下降；风险
+恢复只在 Cow 上触发，其他四个模型没有副作用。NefertitiFace 的最大 SD 略升，但整体
+area-weighted SD 从 4.8850 降至 4.8069，符合当前只关注整体 SD 的评价口径。
+
 当前限制包括：
 
-- (ho_K) 中的 `min` 在命中边切换方向上只分片可微；
+- (\rho_K) 中的 `min` 在命中边切换方向上只分片可微；
 - (q\to1) 时条件数恶化，理论合法不等于数值稳健或低畸变；
 - 动态合法域和 analytic center 是主要运行成本，现有 profile 中占绝大部分时间；
 - 运行速度明显慢于 v2.4 Spline；
-- David328、Isis 等模型的数值精度仍与成熟方法有差距；
-- 单圈 scaffold 可能产生锯齿边界和局部高 (q)；
-- 当前只支持具有单边界的圆盘拓扑，复杂拓扑需要先切割或扩展理论。
+- 整体 SD 尚未在每个 mesh 上超过 v3.0 或成熟方法；
+- boundary hats 增强了非光滑边界表达，但通常仍不能复现完全自由的 SLIM 边界；
+- 当前不优化尾部 SD，也不支持 00027 一类需进一步拓扑处理的复杂输入；
+- 当前只支持具有单边界的圆盘拓扑，其他拓扑需要先切割或扩展理论。
 
-这些限制属于下一阶段的数值精度和效率问题，不改变 v3.0 已验证的核心目标：把合法性从 rollback 的事后修正，转成网络层本身的可达集合约束。
+这些限制不改变 v3.1 的核心闭环：合法性由可达集合和拓扑边界条件提供，优化器只在合法映射族中降低原始面 SD。
 
 ## 16. 思想来源对应表
 
 | 组件 | 论文或资料 | 当前方案中的作用 |
 |---|---|---|
 | Affine coupling 与显式逆 | [Real NVP](https://arxiv.org/abs/1605.08803) | latent 空间中的可逆更新 |
-| v2.4 连续样条背景 | [Neural Spline Flows](https://arxiv.org/abs/1906.04032) | 说明旧连续 NVP 与离散 PL 输出的差异 |
+| 单调 rational-quadratic spline | [Neural Spline Flows](https://arxiv.org/abs/1906.04032) | v2.4 连续样条背景与 v3.1 exact legal-interval spline 的单调变换 |
 | 组合可注入 PL 网格层 | [TutteNet](https://arxiv.org/abs/2406.12121) | mesh-aligned 多层变形的总体动机 |
 | 单顶点可行域 | [Optimal Point Placement for Mesh Smoothing](https://arxiv.org/abs/cs/9809081) | 将一环合法位置写成半平面交 (K_i) |
 | 有界凸域径向双射 | [Semi-Discrete Normalizing Flows](https://arxiv.org/abs/2203.06832) | (mathbb R^2) 与动态 (K_i) 间的显式 homeomorphism |

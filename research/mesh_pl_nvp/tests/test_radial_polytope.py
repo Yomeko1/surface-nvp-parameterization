@@ -39,6 +39,19 @@ def test_round_trip_and_strict_membership_on_random_polygons() -> None:
         assert float(torch.max(torch.abs(restored - latent))) < 2.0e-10
 
 
+def test_atanh_round_trip_and_strict_membership_on_random_polygons() -> None:
+    generator = torch.Generator().manual_seed(19)
+    for seed in range(4):
+        polygon = _random_convex_polygon(seed)
+        A, b = halfplanes_from_ccw_polygon(polygon)
+        center = polygon_vertex_mean(A, b)
+        latent = center + 0.75 * torch.randn((256, 2), generator=generator, dtype=DTYPE)
+        points = to_polytope(latent, A, b, center, radial_map="atanh")
+        restored = from_polytope(points, A, b, center, radial_map="atanh")
+        assert float(minimum_slack(points, A, b).min()) > 0.0
+        assert float(torch.max(torch.abs(restored - latent))) < 2.0e-10
+
+
 def test_center_is_fixed_point() -> None:
     polygon = torch.tensor([[-2.0, -1.0], [2.0, -1.0], [1.5, 1.0], [-1.0, 2.0]], dtype=DTYPE)
     A, b = halfplanes_from_ccw_polygon(polygon)

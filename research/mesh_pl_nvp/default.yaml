@@ -1,3 +1,5 @@
+# Legacy v3.0 single-stage affine preset. Use v3_1_default.yaml with
+# run_harmonic_local.py for the v3.1 release pipeline.
 init:
   boundary: circle
   geometry_scale: true
