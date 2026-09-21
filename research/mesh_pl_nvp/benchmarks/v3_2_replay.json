@@ -1,0 +1,133 @@
+{
+  "date": "2026-09-21",
+  "device": "cuda",
+  "scope": "final-state forward and selected training segments, not a second complete training run",
+  "results": [
+    {
+      "mesh": "Cow",
+      "input_sha256": "8daf3a4dd0e614a2d5f332375ed9a1950e54b10f752a842e1b0ab726d8ea70e0",
+      "reference_bitwise_equal": {
+        "vertices": true,
+        "faces": true,
+        "reference": true,
+        "extended_vertices": true,
+        "extended_faces": true,
+        "modes": true,
+        "boundary": true
+      },
+      "final_forward_bitwise_equal": true,
+      "final_sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 13.992588222279005,
+          "p95_face_count": 64.99922222149034,
+          "p99_face_count": 189.4616699773017,
+          "max": 1172.0534274608012,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 14.002151184144207,
+          "p95_face_count": 65.07789054238005,
+          "p99_face_count": 189.97016898254918,
+          "max": 1179.9908938108354,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 13.992577536769783,
+          "p95_face_count": 64.99723815917969,
+          "p99_face_count": 189.44418334960938,
+          "max": 1171.8558349609375
+        },
+        "faces": "original_only"
+      },
+      "continuations": [
+        {
+          "phase": "first_harmonic",
+          "start": 0,
+          "end": 50,
+          "uv_bitwise_equal": true,
+          "parameters_bitwise_equal": true,
+          "max_abs_uv_difference": 0.0
+        },
+        {
+          "phase": "local",
+          "start": 450,
+          "end": 500,
+          "uv_bitwise_equal": true,
+          "parameters_bitwise_equal": true,
+          "max_abs_uv_difference": 0.0
+        },
+        {
+          "phase": "final_harmonic",
+          "start": 250,
+          "end": 300,
+          "uv_bitwise_equal": true,
+          "parameters_bitwise_equal": true,
+          "max_abs_uv_difference": 0.0
+        }
+      ]
+    },
+    {
+      "mesh": "00027",
+      "input_sha256": "cd4995316e2745eabe3da3a005db6aca1ddff6fc0b5d1cb513e45b47f13bafe3",
+      "reference_bitwise_equal": {
+        "vertices": true,
+        "faces": true,
+        "reference": true,
+        "extended_vertices": true,
+        "extended_faces": true,
+        "modes": true,
+        "boundary": true
+      },
+      "final_forward_bitwise_equal": true,
+      "final_sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 47.082368682532476,
+          "p95_face_count": 92.93254917783301,
+          "p99_face_count": 1453.1005906842008,
+          "max": 18358.20152182264,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 47.48940346896122,
+          "p95_face_count": 93.10427513553874,
+          "p99_face_count": 1464.1988432588473,
+          "max": 18864.23405486848,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 47.08318362098168,
+          "p95_face_count": 92.92802429199219,
+          "p99_face_count": 1453.079833984375,
+          "max": 18367.92578125
+        },
+        "faces": "original_only"
+      },
+      "continuations": [
+        {
+          "phase": "first_harmonic",
+          "start": 0,
+          "end": 10,
+          "uv_bitwise_equal": true,
+          "parameters_bitwise_equal": true,
+          "max_abs_uv_difference": 0.0
+        },
+        {
+          "phase": "local",
+          "start": 490,
+          "end": 500,
+          "uv_bitwise_equal": true,
+          "parameters_bitwise_equal": true,
+          "max_abs_uv_difference": 0.0
+        },
+        {
+          "phase": "final_harmonic",
+          "start": 250,
+          "end": 300,
+          "uv_bitwise_equal": true,
+          "parameters_bitwise_equal": true,
+          "max_abs_uv_difference": 0.0
+        }
+      ]
+    }
+  ]
+}

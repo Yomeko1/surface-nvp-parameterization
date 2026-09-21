@@ -1,0 +1,1514 @@
+{
+  "schema_version": 1,
+  "release": "v3.2",
+  "experiment_date": "2026-09-20",
+  "collected_date": "2026-09-21",
+  "scope": "two meshes, one seed, fixed budgets; not a universal performance guarantee",
+  "export_format": "usda",
+  "error_thresholds": null,
+  "rows": [
+    {
+      "mesh": "Cow",
+      "configuration": "v3.1",
+      "h2_updates": 100,
+      "seed": 20260906,
+      "input_sha256": "8daf3a4dd0e614a2d5f332375ed9a1950e54b10f752a842e1b0ab726d8ea70e0",
+      "source_audit": "data/output/v3_1_cow_validation/20260920_full_01/original_affine/audit/final_harmonic_0100.json",
+      "source_audit_sha256": "7e87ca7aed619bfdbd46eddcc5cf1036801ddb7926dd644aec0a925f37c7e2d8",
+      "sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 15.062479838453253,
+          "p95_face_count": 73.14668215443156,
+          "p99_face_count": 195.26277605173163,
+          "max": 1490.8098601760898,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 15.072392734070927,
+          "p95_face_count": 73.24882351642424,
+          "p99_face_count": 195.2627845389445,
+          "max": 1502.22574937102,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 15.062504826374646,
+          "p95_face_count": 73.14541625976562,
+          "p99_face_count": 195.2627410888672,
+          "max": 1490.9112548828125
+        },
+        "faces": "original_only"
+      },
+      "geometry": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 6.771734783337286e-15,
+            "rms": 2.26901211499547e-16,
+            "p99": 9.023764073195417e-16
+          },
+          "relative": {
+            "max": 3.3858668517081613e-15,
+            "rms": 1.134505876572623e-16,
+            "p99": 4.511881317066281e-16
+          }
+        },
+        "located": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 6.771734783337286e-15,
+            "rms": 2.26901211499547e-16,
+            "p99": 9.023764073195417e-16
+          },
+          "relative": {
+            "max": 3.3858668517081613e-15,
+            "rms": 1.134505876572623e-16,
+            "p99": 4.511881317066281e-16
+          }
+        },
+        "located_success_only": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 6.771734783337286e-15,
+            "rms": 2.26901211499547e-16,
+            "p99": 9.023764073195417e-16
+          },
+          "relative": {
+            "max": 3.3858668517081613e-15,
+            "rms": 1.134505876572623e-16,
+            "p99": 4.511881317066281e-16
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "geometry_export_decode": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0081162818090349e-06,
+            "rms": 5.332620882707233e-08,
+            "p99": 2.1301137990905484e-07
+          },
+          "relative": {
+            "max": 5.040580605199526e-07,
+            "rms": 2.666310016144326e-08,
+            "p99": 1.0650567296955518e-07
+          }
+        },
+        "located": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0081162818090349e-06,
+            "rms": 5.332620882707233e-08,
+            "p99": 2.1301137990905484e-07
+          },
+          "relative": {
+            "max": 5.040580605199526e-07,
+            "rms": 2.666310016144326e-08,
+            "p99": 1.0650567296955518e-07
+          }
+        },
+        "located_success_only": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0081162818090349e-06,
+            "rms": 5.332620882707233e-08,
+            "p99": 2.1301137990905484e-07
+          },
+          "relative": {
+            "max": 5.040580605199526e-07,
+            "rms": 2.666310016144326e-08,
+            "p99": 1.0650567296955518e-07
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "original_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.52834653159177e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "extended_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.52834653159177e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "export_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.528470303772792e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "network": {
+        "composed": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 3195,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 5.0041448755305853e-11,
+                "rms": 2.139594722741115e-11,
+                "p99": 4.607814876193039e-11
+              },
+              "relative": {
+                "max": 1.120715166169519e-11,
+                "rms": 4.7917802439282695e-12,
+                "p99": 1.0319541386386266e-11
+              }
+            },
+            "auxiliary": {
+              "count": 3504,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 4.922285684630486e-11,
+                "rms": 1.850303755833108e-11,
+                "p99": 4.5193990351369474e-11
+              },
+              "relative": {
+                "max": 1.1023821963986587e-11,
+                "rms": 4.143891779237742e-12,
+                "p99": 1.0121527586894323e-11
+              }
+            },
+            "all": {
+              "count": 6699,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 5.0041448755305853e-11,
+                "rms": 1.9935205901945166e-11,
+                "p99": 4.5600625260319744e-11
+              },
+              "relative": {
+                "max": 1.120715166169519e-11,
+                "rms": 4.464636446532372e-12,
+                "p99": 1.0212596474964077e-11
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 4.8093657528669453e-11,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        },
+        "isolated": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 3195,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 5.194432061974593e-14,
+                "rms": 1.9291037752590742e-14,
+                "p99": 4.773339306304512e-14
+              },
+              "relative": {
+                "max": 1.1633313855396495e-14,
+                "rms": 4.320370236719989e-15,
+                "p99": 1.0690245560249389e-14
+              }
+            },
+            "auxiliary": {
+              "count": 3504,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 5.208366119792654e-14,
+                "rms": 1.819234902630825e-14,
+                "p99": 4.819096935231462e-14
+              },
+              "relative": {
+                "max": 1.1664520205954697e-14,
+                "rms": 4.0743107901869375e-15,
+                "p99": 1.0792723146294403e-14
+              }
+            },
+            "all": {
+              "count": 6699,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 5.208366119792654e-14,
+                "rms": 1.8724397205202088e-14,
+                "p99": 4.782213993583191e-14
+              },
+              "relative": {
+                "max": 1.1664520205954697e-14,
+                "rms": 4.193466905377543e-15,
+                "p99": 1.0710121077197074e-14
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 4.796163466380676e-14,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        }
+      }
+    },
+    {
+      "mesh": "Cow",
+      "configuration": "original_h2_300",
+      "h2_updates": 300,
+      "seed": 20260906,
+      "input_sha256": "8daf3a4dd0e614a2d5f332375ed9a1950e54b10f752a842e1b0ab726d8ea70e0",
+      "source_audit": "data/output/v3_1_cow_validation/20260920_full_01/original_affine/audit/final_harmonic_0300.json",
+      "source_audit_sha256": "5ed8db8bb37feae892d0cd5d695c0af2fdde72ddab18ffc0af11b03b975ecb43",
+      "sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 14.719031414767134,
+          "p95_face_count": 70.48341708090219,
+          "p99_face_count": 193.7219071958466,
+          "max": 1402.9926299681335,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 14.72876262142092,
+          "p95_face_count": 70.48390444002247,
+          "p99_face_count": 194.22089765207835,
+          "max": 1413.4109961243034,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 14.719007139137918,
+          "p95_face_count": 70.48347473144531,
+          "p99_face_count": 193.71519470214844,
+          "max": 1402.6580810546875
+        },
+        "faces": "original_only"
+      },
+      "geometry": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 7.373249855553697e-15,
+            "rms": 2.272167446199297e-16,
+            "p99": 8.689977739869275e-16
+          },
+          "relative": {
+            "max": 3.686624339853123e-15,
+            "rms": 1.1360835419229384e-16,
+            "p99": 4.3449881770184616e-16
+          }
+        },
+        "located": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 7.373249855553697e-15,
+            "rms": 2.272167446199297e-16,
+            "p99": 8.689977739869275e-16
+          },
+          "relative": {
+            "max": 3.686624339853123e-15,
+            "rms": 1.1360835419229384e-16,
+            "p99": 4.3449881770184616e-16
+          }
+        },
+        "located_success_only": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 7.373249855553697e-15,
+            "rms": 2.272167446199297e-16,
+            "p99": 8.689977739869275e-16
+          },
+          "relative": {
+            "max": 3.686624339853123e-15,
+            "rms": 1.1360835419229384e-16,
+            "p99": 4.3449881770184616e-16
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "geometry_export_decode": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.2778613901316783e-06,
+            "rms": 4.916096936123015e-08,
+            "p99": 2.0088070027359358e-07
+          },
+          "relative": {
+            "max": 6.389305931725024e-07,
+            "rms": 2.458048076064751e-08,
+            "p99": 1.0044033411909332e-07
+          }
+        },
+        "located": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.2778613901316783e-06,
+            "rms": 4.916096936123015e-08,
+            "p99": 2.0088070027359358e-07
+          },
+          "relative": {
+            "max": 6.389305931725024e-07,
+            "rms": 2.458048076064751e-08,
+            "p99": 1.0044033411909332e-07
+          }
+        },
+        "located_success_only": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.2778613901316783e-06,
+            "rms": 4.916096936123015e-08,
+            "p99": 2.0088070027359358e-07
+          },
+          "relative": {
+            "max": 6.389305931725024e-07,
+            "rms": 2.458048076064751e-08,
+            "p99": 1.0044033411909332e-07
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "original_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.737333200708292e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "extended_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.737333200708292e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "export_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.737825681251252e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "network": {
+        "composed": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 3195,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.7011921982328185e-10,
+                "rms": 4.278700498392719e-11,
+                "p99": 1.0947905212794455e-10
+              },
+              "relative": {
+                "max": 3.809945444328552e-11,
+                "rms": 9.582465454774364e-12,
+                "p99": 2.4518641476110656e-11
+              }
+            },
+            "auxiliary": {
+              "count": 3504,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.6203915737897573e-10,
+                "rms": 3.972030941619298e-11,
+                "p99": 1.2416796745494072e-10
+              },
+              "relative": {
+                "max": 3.6289864843030295e-11,
+                "rms": 8.895656355863103e-12,
+                "p99": 2.7808332440503256e-11
+              }
+            },
+            "all": {
+              "count": 6699,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.7011921982328185e-10,
+                "rms": 4.121140424829401e-11,
+                "p99": 1.200879057167523e-10
+              },
+              "relative": {
+                "max": 3.809945444328552e-11,
+                "rms": 9.229598045022417e-12,
+                "p99": 2.689457251095867e-11
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 1.6913137557139635e-10,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        },
+        "isolated": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 3195,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 4.876559062030276e-14,
+                "rms": 1.7816037571619596e-14,
+                "p99": 4.3361422828815814e-14
+              },
+              "relative": {
+                "max": 1.0921413818897998e-14,
+                "rms": 3.990033063429842e-15,
+                "p99": 9.71111056927394e-15
+              }
+            },
+            "auxiliary": {
+              "count": 3504,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 4.818419088952922e-14,
+                "rms": 1.6768767540472678e-14,
+                "p99": 4.382513104523392e-14
+              },
+              "relative": {
+                "max": 1.0791205059541148e-14,
+                "rms": 3.755489213046867e-15,
+                "p99": 9.814961445646117e-15
+              }
+            },
+            "all": {
+              "count": 6699,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 4.876559062030276e-14,
+                "rms": 1.727616975079277e-14,
+                "p99": 4.369669144491979e-14
+              },
+              "relative": {
+                "max": 1.0921413818897998e-14,
+                "rms": 3.869125681733911e-15,
+                "p99": 9.786196449510081e-15
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 4.529709940470639e-14,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        }
+      }
+    },
+    {
+      "mesh": "Cow",
+      "configuration": "v3.2",
+      "h2_updates": 300,
+      "seed": 20260906,
+      "input_sha256": "8daf3a4dd0e614a2d5f332375ed9a1950e54b10f752a842e1b0ab726d8ea70e0",
+      "source_audit": "data/output/v3_1_cow_validation/20260920_full_01/h2_affine_wide/audit/final_harmonic_0300.json",
+      "source_audit_sha256": "48906d4fe43eb51c249e6b56a78ffdf9abe773ee8144dbc41ca94405d6b4bba2",
+      "sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 13.992588222279005,
+          "p95_face_count": 64.99922222149034,
+          "p99_face_count": 189.4616699773017,
+          "max": 1172.0534274608012,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 14.002151184144207,
+          "p95_face_count": 65.07789054238005,
+          "p99_face_count": 189.97016898254918,
+          "max": 1179.9908938108354,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 13.992577536769783,
+          "p95_face_count": 64.99723815917969,
+          "p99_face_count": 189.44418334960938,
+          "max": 1171.8558349609375
+        },
+        "faces": "original_only"
+      },
+      "geometry": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 6.521556267325477e-15,
+            "rms": 2.0954378545786898e-16,
+            "p99": 8.275921921288956e-16
+          },
+          "relative": {
+            "max": 3.2607776136508393e-15,
+            "rms": 1.0477187602045918e-16,
+            "p99": 4.137960300744034e-16
+          }
+        },
+        "located": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 6.521556267325477e-15,
+            "rms": 2.0954378545786898e-16,
+            "p99": 8.275921921288956e-16
+          },
+          "relative": {
+            "max": 3.2607776136508393e-15,
+            "rms": 1.0477187602045918e-16,
+            "p99": 4.137960300744034e-16
+          }
+        },
+        "located_success_only": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 6.521556267325477e-15,
+            "rms": 2.0954378545786898e-16,
+            "p99": 8.275921921288956e-16
+          },
+          "relative": {
+            "max": 3.2607776136508393e-15,
+            "rms": 1.0477187602045918e-16,
+            "p99": 4.137960300744034e-16
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "geometry_export_decode": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.1006184940028486e-06,
+            "rms": 4.719091591071047e-08,
+            "p99": 1.9001702950504366e-07
+          },
+          "relative": {
+            "max": 5.503091592409742e-07,
+            "rms": 2.3595454192474595e-08,
+            "p99": 9.500849960105916e-08
+          }
+        },
+        "located": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.1006184940028486e-06,
+            "rms": 4.719091591071047e-08,
+            "p99": 1.9001702950504366e-07
+          },
+          "relative": {
+            "max": 5.503091592409742e-07,
+            "rms": 2.3595454192474595e-08,
+            "p99": 9.500849960105916e-08
+          }
+        },
+        "located_success_only": {
+          "count": 17412,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.1006184940028486e-06,
+            "rms": 4.719091591071047e-08,
+            "p99": 1.9001702950504366e-07
+          },
+          "relative": {
+            "max": 5.503091592409742e-07,
+            "rms": 2.3595454192474595e-08,
+            "p99": 9.500849960105916e-08
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "original_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.589019131945409e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "extended_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.263238256847879e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "export_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 5.588566835967868e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "network": {
+        "composed": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 3195,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.0592139974245529e-10,
+                "rms": 3.8080129945222675e-11,
+                "p99": 8.998089603038264e-11
+              },
+              "relative": {
+                "max": 2.372187897551374e-11,
+                "rms": 8.528326061861289e-12,
+                "p99": 2.0151885557885688e-11
+              }
+            },
+            "auxiliary": {
+              "count": 3504,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.0491712529350789e-10,
+                "rms": 3.708554627427207e-11,
+                "p99": 9.151747184962822e-11
+              },
+              "relative": {
+                "max": 2.3496964302991885e-11,
+                "rms": 8.305581710571755e-12,
+                "p99": 2.0496013049681236e-11
+              }
+            },
+            "all": {
+              "count": 6699,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.0592139974245529e-10,
+                "rms": 3.7563184799364597e-11,
+                "p99": 9.134357391319375e-11
+              },
+              "relative": {
+                "max": 2.372187897551374e-11,
+                "rms": 8.412552382351373e-12,
+                "p99": 2.0457067323772964e-11
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 8.056533218336881e-11,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        },
+        "isolated": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 3195,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.1168981577054167e-13,
+                "rms": 5.673384824466556e-14,
+                "p99": 1.0392673439029661e-13
+              },
+              "relative": {
+                "max": 2.5013758305199673e-14,
+                "rms": 1.2705963904815012e-14,
+                "p99": 2.327515895297241e-14
+              }
+            },
+            "auxiliary": {
+              "count": 3504,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.1105761581634938e-13,
+                "rms": 4.599892026449859e-14,
+                "p99": 9.971485571331097e-14
+              },
+              "relative": {
+                "max": 2.4872172460996902e-14,
+                "rms": 1.0301797579827264e-14,
+                "p99": 2.2331877647420017e-14
+              }
+            },
+            "all": {
+              "count": 6699,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.1168981577054167e-13,
+                "rms": 5.139922567786574e-14,
+                "p99": 1.026389627632338e-13
+              },
+              "relative": {
+                "max": 2.5013758305199673e-14,
+                "rms": 1.1511235821374219e-14,
+                "p99": 2.2986752995729005e-14
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 1.1035616864774056e-13,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        }
+      }
+    },
+    {
+      "mesh": "00027",
+      "configuration": "v3.1",
+      "h2_updates": 100,
+      "seed": 20260906,
+      "input_sha256": "cd4995316e2745eabe3da3a005db6aca1ddff6fc0b5d1cb513e45b47f13bafe3",
+      "source_audit": "data/output/v3_1_audit_00027/20260917_full_01/audit/final_harmonic_0100.json",
+      "source_audit_sha256": "cbf25caad4293aebd1f798ceb85173c12944b28b60a077677193523d1028f283",
+      "sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 54.43403248817886,
+          "p95_face_count": 113.73142011646432,
+          "p99_face_count": 1759.2634545169828,
+          "max": 21307.65671440301,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 54.942877581936514,
+          "p95_face_count": 113.96502051814765,
+          "p99_face_count": 1773.524881815909,
+          "max": 21941.54012694684,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 54.43217811807676,
+          "p95_face_count": 113.73039245605469,
+          "p99_face_count": 1759.903564453125,
+          "max": 21309.927734375
+        },
+        "faces": "original_only"
+      },
+      "geometry": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 5.4251753088341373e-14,
+            "rms": 1.0990743150185072e-15,
+            "p99": 4.152683075078486e-15
+          },
+          "relative": {
+            "max": 1.3426684815674272e-14,
+            "rms": 2.720082499956639e-16,
+            "p99": 1.0277412915610628e-15
+          }
+        },
+        "located": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 5.4251753088341373e-14,
+            "rms": 1.0990743150185072e-15,
+            "p99": 4.152683075078486e-15
+          },
+          "relative": {
+            "max": 1.3426684815674272e-14,
+            "rms": 2.720082499956639e-16,
+            "p99": 1.0277412915610628e-15
+          }
+        },
+        "located_success_only": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 5.4251753088341373e-14,
+            "rms": 1.0990743150185072e-15,
+            "p99": 4.152683075078486e-15
+          },
+          "relative": {
+            "max": 1.3426684815674272e-14,
+            "rms": 2.720082499956639e-16,
+            "p99": 1.0277412915610628e-15
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "geometry_export_decode": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 9.456949999369475e-06,
+            "rms": 2.5606405483411074e-07,
+            "p99": 1.0162426497078687e-06
+          },
+          "relative": {
+            "max": 2.340486338798364e-06,
+            "rms": 6.33729079921655e-08,
+            "p99": 2.5150836566801143e-07
+          }
+        },
+        "located": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 9.456949999369475e-06,
+            "rms": 2.5606405483411074e-07,
+            "p99": 1.0162426497078687e-06
+          },
+          "relative": {
+            "max": 2.340486338798364e-06,
+            "rms": 6.33729079921655e-08,
+            "p99": 2.5150836566801143e-07
+          }
+        },
+        "located_success_only": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 9.456949999369475e-06,
+            "rms": 2.5606405483411074e-07,
+            "p99": 1.0162426497078687e-06
+          },
+          "relative": {
+            "max": 2.340486338798364e-06,
+            "rms": 6.33729079921655e-08,
+            "p99": 2.5150836566801143e-07
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "original_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.3623312505832442e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "extended_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.3623312505832442e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "export_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.3623168371168504e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "network": {
+        "composed": {
+          "status": "failed",
+          "error": "ValueError('mesh coupling layer 2 (inverse=True) failed: a point is outside its legal axis interval: minimum_clearance=0')"
+        },
+        "isolated": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 13893,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.6262110894717658e-13,
+                "rms": 5.1230793311550494e-14,
+                "p99": 1.4212593669090515e-13
+              },
+              "relative": {
+                "max": 2.3834457444586144e-14,
+                "rms": 7.508608021072893e-15,
+                "p99": 2.0830595804949693e-14
+              }
+            },
+            "auxiliary": {
+              "count": 8256,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.6240312652519751e-13,
+                "rms": 4.367600599166642e-14,
+                "p99": 1.474832568241749e-13
+              },
+              "relative": {
+                "max": 2.38025089921745e-14,
+                "rms": 6.4013455134905255e-15,
+                "p99": 2.16157879584168e-14
+              }
+            },
+            "all": {
+              "count": 22149,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 1.6262110894717658e-13,
+                "rms": 4.855237857370699e-14,
+                "p99": 1.4353515969391934e-13
+              },
+              "relative": {
+                "max": 2.3834457444586144e-14,
+                "rms": 7.116047900794658e-15,
+                "p99": 2.1037137661125227e-14
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 1.6209256159527285e-13,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        }
+      }
+    },
+    {
+      "mesh": "00027",
+      "configuration": "original_h2_300",
+      "h2_updates": 300,
+      "seed": 20260906,
+      "input_sha256": "cd4995316e2745eabe3da3a005db6aca1ddff6fc0b5d1cb513e45b47f13bafe3",
+      "source_audit": "data/output/v3_1_followup_00027/20260920_full_01/h2_extend/audit/final_harmonic_0300.json",
+      "source_audit_sha256": "7595830d57e93ccc96270077c9430e2a56e30d51cfd436b57262aa64df1b1455",
+      "sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 53.28125802879276,
+          "p95_face_count": 108.70908031434871,
+          "p99_face_count": 1714.2442781094435,
+          "max": 20852.807223571002,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 53.77463212437255,
+          "p95_face_count": 108.78598517208349,
+          "p99_face_count": 1728.4436065970292,
+          "max": 21466.385136027264,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 53.2812104540488,
+          "p95_face_count": 108.71034240722656,
+          "p99_face_count": 1714.1190185546875,
+          "max": 20829.447265625
+        },
+        "faces": "original_only"
+      },
+      "geometry": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 4.729563398810753e-14,
+            "rms": 1.0899286080665339e-15,
+            "p99": 4.086867137301196e-15
+          },
+          "relative": {
+            "max": 1.1705125356626993e-14,
+            "rms": 2.697447927307768e-16,
+            "p99": 1.0114526040610528e-15
+          }
+        },
+        "located": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 4.729563398810753e-14,
+            "rms": 1.0899286080665339e-15,
+            "p99": 4.086867137301196e-15
+          },
+          "relative": {
+            "max": 1.1705125356626993e-14,
+            "rms": 2.697447927307768e-16,
+            "p99": 1.0114526040610528e-15
+          }
+        },
+        "located_success_only": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 4.729563398810753e-14,
+            "rms": 1.0899286080665339e-15,
+            "p99": 4.086867137301196e-15
+          },
+          "relative": {
+            "max": 1.1705125356626993e-14,
+            "rms": 2.697447927307768e-16,
+            "p99": 1.0114526040610528e-15
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "geometry_export_decode": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0519710829407558e-05,
+            "rms": 2.603885414904786e-07,
+            "p99": 9.974363260446804e-07
+          },
+          "relative": {
+            "max": 2.6035074189859495e-06,
+            "rms": 6.444316869378914e-08,
+            "p99": 2.468540168959816e-07
+          }
+        },
+        "located": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0519710829407558e-05,
+            "rms": 2.603885414904786e-07,
+            "p99": 9.974363260446804e-07
+          },
+          "relative": {
+            "max": 2.6035074189859495e-06,
+            "rms": 6.444316869378914e-08,
+            "p99": 2.468540168959816e-07
+          }
+        },
+        "located_success_only": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0519710829407558e-05,
+            "rms": 2.603885414904786e-07,
+            "p99": 9.974363260446804e-07
+          },
+          "relative": {
+            "max": 2.6035074189859495e-06,
+            "rms": 6.444316869378914e-08,
+            "p99": 2.468540168959816e-07
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "original_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.4373461148879577e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "extended_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.4373461148879577e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "export_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.4370629486393227e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "network": {
+        "composed": {
+          "status": "failed",
+          "error": "ValueError('mesh coupling layer 2 (inverse=True) failed: a point is outside its legal axis interval: minimum_clearance=-4.4408920985006262e-16')"
+        },
+        "isolated": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 13893,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 8.213759784948045e-14,
+                "rms": 2.9580640337718084e-14,
+                "p99": 6.92465956736208e-14
+              },
+              "relative": {
+                "max": 1.203844379870687e-14,
+                "rms": 4.3354673810640676e-15,
+                "p99": 1.014908241894653e-14
+              }
+            },
+            "auxiliary": {
+              "count": 8256,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 8.100710935487472e-14,
+                "rms": 2.9549420387065106e-14,
+                "p99": 7.029956388154181e-14
+              },
+              "relative": {
+                "max": 1.18727544851195e-14,
+                "rms": 4.330891649229019e-15,
+                "p99": 1.030341002195376e-14
+              }
+            },
+            "all": {
+              "count": 22149,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 8.213759784948045e-14,
+                "rms": 2.956900701063996e-14,
+                "p99": 6.97302260623116e-14
+              },
+              "relative": {
+                "max": 1.203844379870687e-14,
+                "rms": 4.3337623500199574e-15,
+                "p99": 1.0219965393443425e-14
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 8.193445921733655e-14,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        }
+      }
+    },
+    {
+      "mesh": "00027",
+      "configuration": "v3.2",
+      "h2_updates": 300,
+      "seed": 20260906,
+      "input_sha256": "cd4995316e2745eabe3da3a005db6aca1ddff6fc0b5d1cb513e45b47f13bafe3",
+      "source_audit": "data/output/v3_1_followup_00027/20260920_full_01/h2_affine_wide/audit/final_harmonic_0300.json",
+      "source_audit_sha256": "1d38223e29a39a3fd6c5c2bd31fa11c02f507a43b698107c5be307f572c35119",
+      "sd": {
+        "regularized_f64": {
+          "area_weighted_mean": 47.082368682532476,
+          "p95_face_count": 92.93254917783301,
+          "p99_face_count": 1453.1005906842008,
+          "max": 18358.20152182264,
+          "nonfinite_faces": 0
+        },
+        "strict_qr_f64": {
+          "area_weighted_mean": 47.48940346896122,
+          "p95_face_count": 93.10427513553874,
+          "p99_face_count": 1464.1988432588473,
+          "max": 18864.23405486848,
+          "nonfinite_faces": 0
+        },
+        "legacy_regularized_f32": {
+          "area_weighted_mean": 47.08318362098168,
+          "p95_face_count": 92.92802429199219,
+          "p99_face_count": 1453.079833984375,
+          "max": 18367.92578125
+        },
+        "faces": "original_only"
+      },
+      "geometry": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 4.5651779815297264e-14,
+            "rms": 1.0263987945573586e-15,
+            "p99": 3.805001171114828e-15
+          },
+          "relative": {
+            "max": 1.1298290358588976e-14,
+            "rms": 2.540218946891729e-16,
+            "p99": 9.416940198160923e-16
+          }
+        },
+        "located": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 4.5651779815297264e-14,
+            "rms": 1.0263987945573586e-15,
+            "p99": 3.805001171114828e-15
+          },
+          "relative": {
+            "max": 1.1298290358588976e-14,
+            "rms": 2.540218946891729e-16,
+            "p99": 9.416940198160923e-16
+          }
+        },
+        "located_success_only": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 4.5651779815297264e-14,
+            "rms": 1.0263987945573586e-15,
+            "p99": 3.805001171114828e-15
+          },
+          "relative": {
+            "max": 1.1298290358588976e-14,
+            "rms": 2.540218946891729e-16,
+            "p99": 9.416940198160923e-16
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "geometry_export_decode": {
+        "sampling": "three_interior_points_per_face",
+        "normalizer": "D3D",
+        "weighting": "original_3d_face_area_equal_samples",
+        "known_face": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0277844266992075e-05,
+            "rms": 2.551645520466112e-07,
+            "p99": 9.361772885630199e-07
+          },
+          "relative": {
+            "max": 2.543648227049511e-06,
+            "rms": 6.315029139950148e-08,
+            "p99": 2.3169310979979064e-07
+          }
+        },
+        "located": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0277844266992075e-05,
+            "rms": 2.551645520466112e-07,
+            "p99": 9.361772885630199e-07
+          },
+          "relative": {
+            "max": 2.543648227049511e-06,
+            "rms": 6.315029139950148e-08,
+            "p99": 2.3169310979979064e-07
+          }
+        },
+        "located_success_only": {
+          "count": 79224,
+          "nonfinite": 0,
+          "status": "ok",
+          "absolute": {
+            "max": 1.0277844266992075e-05,
+            "rms": 2.551645520466112e-07,
+            "p99": 9.361772885630199e-07
+          },
+          "relative": {
+            "max": 2.543648227049511e-06,
+            "rms": 6.315029139950148e-08,
+            "p99": 2.3169310979979064e-07
+          }
+        },
+        "missing": 0,
+        "multiple_candidates": 0,
+        "different_face": 0,
+        "sampled_not_continuous_bound": true
+      },
+      "original_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.887620579513394e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "extended_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.887620579513394e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "export_validity": {
+        "flipped": 0,
+        "degenerate": 0,
+        "nonfinite_faces": 0,
+        "legacy_num_flipped": 0,
+        "minimum_signed_area": 1.8870969142881222e-07,
+        "intersection_pairs": 0,
+        "intersection_status": "complete"
+      },
+      "network": {
+        "composed": {
+          "status": "failed",
+          "error": "ValueError(\"the current map is outside a harmonic mode's legal set\")"
+        },
+        "isolated": {
+          "status": "ok",
+          "groups": {
+            "original": {
+              "count": 13893,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 6.688397148834621e-13,
+                "rms": 2.1802023046992622e-13,
+                "p99": 5.485082892384878e-13
+              },
+              "relative": {
+                "max": 9.802805936354293e-14,
+                "rms": 3.195399378860612e-14,
+                "p99": 8.039176194588646e-14
+              }
+            },
+            "auxiliary": {
+              "count": 8256,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 6.658225835619617e-13,
+                "rms": 2.231652077603113e-13,
+                "p99": 5.645380043612086e-13
+              },
+              "relative": {
+                "max": 9.758585546668973e-14,
+                "rms": 3.2708064050916764e-14,
+                "p99": 8.274114675462879e-14
+              }
+            },
+            "all": {
+              "count": 22149,
+              "nonfinite": 0,
+              "status": "ok",
+              "absolute": {
+                "max": 6.688397148834621e-13,
+                "rms": 2.1995208107174243e-13,
+                "p99": 5.551639930231968e-13
+              },
+              "relative": {
+                "max": 9.802805936354293e-14,
+                "rms": 3.2237134220105965e-14,
+                "p99": 8.136725085779609e-14
+              }
+            }
+          },
+          "legacy_max_abs_coordinate": 6.434852650727407e-13,
+          "weighting": "uniform vertices",
+          "normalizer": "LUV0"
+        }
+      }
+    }
+  ]
+}

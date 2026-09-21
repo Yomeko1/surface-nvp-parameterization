@@ -55,6 +55,15 @@ class RiskLearningRateRecovery:
     def safe_steps(self) -> int:
         return self._safe_steps
 
+    def state_dict(self) -> dict[str, int]:
+        return {"safe_steps": self._safe_steps}
+
+    def load_state_dict(self, state: dict[str, int]) -> None:
+        value = int(state["safe_steps"])
+        if value < 0:
+            raise ValueError("safe_steps must be non-negative")
+        self._safe_steps = value
+
     def observe(
         self,
         *,

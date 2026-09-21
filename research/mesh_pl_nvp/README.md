@@ -1,96 +1,68 @@
-# Mesh-aligned PL-NVP v3.1
+# Mesh-aligned PL-NVP v3.2
 
-This directory contains the isolated research implementation of mesh-aligned
-piecewise-linear NVP. It does not modify the retained v2.4 Affine/Spline
-pipeline. The current trainer has no rollback branch: legality is enforced by
-the reachable set of every PL layer, while optimization minimizes only
-original-face area-weighted symmetric Dirichlet distortion.
+The released default is **H1 affine100 -> Local RQS500 -> wide affine H2 300**.
+Only H2's bounds change to `max_log_scale=0.16, max_shift=0.40`; H1 keeps
+`0.08 / 0.20`. Six-ring scaffold, C0 boundary hats, float64, regularized SD and
+risk-adaptive learning-rate reduction/recovery retain the v3.1 configuration.
+No rollback, flip barrier or intersection penalty is used.
 
-For the full derivation and paper links, read
-[`PRINCIPLE_CN.md`](PRINCIPLE_CN.md). For reproducible Windows/Linux commands,
-read [`RUN_PIPELINE_CN.md`](RUN_PIPELINE_CN.md).
+See [PRINCIPLE_CN.md](PRINCIPLE_CN.md) for the structural argument,
+[RUN_PIPELINE_CN.md](RUN_PIPELINE_CN.md) for commands,
+[AUDIT_PROTOCOL_CN.md](AUDIT_PROTOCOL_CN.md) for metric definitions and
+[../../v3.2.md](../../v3.2.md) for results and limitations.
 
-## v3.1 architecture
+## Run
 
-```text
-Tutte circle
-  -> six-ring scaffold with fixed convex outer boundary
-  -> H1 certified global harmonic/boundary modes (100 iterations)
-  -> mesh-local legal-interval spline PL-NVP (500 iterations)
-  -> H2 certified global harmonic refinement (100 iterations)
-  -> original-mesh and extended-scaffold audit
+```bash
+python -m pip install -e ".[test,usd]"
+python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.2/Cow
 ```
 
-The local layer updates proper-color independent vertex sets. For each active
-vertex, the current one-ring defines an exact convex legal region. The v3.1
-default applies a conditional rational-quadratic spline inside an exact legal
-axis interval. H1/H2 coefficients likewise stay inside exact connected
-positive-area intervals. A fixed simple scaffold boundary plus positive
-extended-face orientation gives global injectivity for a disk map.
+`surface-nvp-pl` is the installed console command. The YAML is optional: built-in
+v3.2 defaults are identical. Explicit CLI options override YAML. Use `--device cpu`
+without CUDA. The runner creates a new output directory and refuses to overwrite.
+OBJ input defaults to OBJ output; USD input defaults to USDA. `--export-format usda`
+reproduces the historical export-quantization audit and requires `usd-core`.
 
-## Release configuration
+For a short smoke run add `--harmonic-iters 2 --local-iters 2 --final-harmonic-iters 2`.
+This is an installation check, not a quality benchmark.
 
-The executable release preset is [`v3_1_default.yaml`](v3_1_default.yaml). It
-contains the same defaults as `run_harmonic_local.py`; an explicit CLI option
-overrides the YAML value.
+## Results and Audits
 
-Important defaults:
+`final.obj`/`final.usda`, `final.model.pt` and native snapshots are saved before
+network inverse auditing. `audit/` holds four distinct metrics and explicit
+failure statuses; `report/` holds a JSON table, Markdown report and plots.
+Original and extended geometry are checked separately, including quantized export.
+An inverse status of `ok` only means finite computation; inspect the residual.
+00027 still exhibits composed-network inverse failure despite valid geometric UV.
 
-- Tutte circle with geometry scaling;
-- H100–Spline500–H100;
-- harmonic cycles 2, local cycles 4, hidden dimension 32;
-- frequencies 2–5 and automatically supported C0 hats 4/8/16/32;
-- eight spline bins, `atanh` conditioning model;
-- six scaffold rings, scale 1.1, exponent 3, geometric profile;
-- risk-adaptive LR reduction and conservative recovery;
-- CUDA, float64, fixed seed 20260906;
-- no rollback, barrier, intersection loss, scaffold quality loss, or tail loss.
+| Mesh | v3.1 SD | v3.2 SD | Improvement |
+|---|---:|---:|---:|
+| 00027 | 54.434032 | 47.082369 | 13.51% |
+| Cow | 15.062480 | 13.992588 | 7.10% |
 
-## Run v3.1
+Native-f64 original-3D-area-weighted regularized SD, seed 20260906. Both adopted
+endpoints have zero audited flips and intersections. These tests do not prove
+universal improvement. See [benchmarks/v3_2_results.json](benchmarks/v3_2_results.json).
 
-From the repository root:
+## Retained Entry Points
 
-```powershell
-python -m research.mesh_pl_nvp.run_harmonic_local `
-  --config research/mesh_pl_nvp/v3_1_default.yaml `
-  --input data/input/Balls/Balls.obj `
-  --output-dir data/output/mesh_pl_nvp/v3.1/Balls
-```
+- v3.1: `run_harmonic_local.py` with unchanged `v3_1_default.yaml`, H100/Local500/H100.
+- v3.0: `run_pipeline.py` with `default.yaml`, single-stage affine baseline.
+- Historical/shared audit backend: `run_v31_audit.py` and `summarize_v31_audit.py`.
+- v3.2 user entry point: `run_v32.py`, installed as `surface-nvp-pl`.
 
-Use `--device cpu` if CUDA is unavailable. Use `--local-iters 50` and
-`--final-harmonic-iters 0` for a smoke test. Existing output directories should
-not be reused because result files are written with deterministic names.
-
-Each run writes separate `two_stage/` and `three_stage/` directories containing
-the mesh, model, actual config, full metrics/history, JSON/CSV summary, UV and
-boundary comparisons, loss plot, distortion heatmap, and flip/intersection
-diagnostics. `data/output/` is intentionally Git-ignored.
+Do not load the v3.1 YAML through the v3.2 entry point to reproduce the old model:
+its unlisted H2 settings would inherit v3.2 defaults. Use the v3.1 entry point or tag.
+Historical exact reproduction should use the corresponding tag and dependencies.
 
 ## Tests
 
-```powershell
-python -m pytest research/mesh_pl_nvp/tests -q
-python -m pytest -q
+```bash
+python -m pytest tests research/mesh_pl_nvp/tests -q
 ```
 
-The tests cover polytope maps, analytic centers, batched coupling, exact spline
-intervals, harmonic mode intervals, multiring scaffolds, explicit inverse
-composition, LR recovery, YAML configuration, topology checks, and pipeline
-artifacts.
-
-## Retained v3.0 entry points
-
-`run_pipeline.py`, `default.yaml`, `run_balls_patch.py`, and `validate.py` are
-retained for the v3.0 baseline and low-level diagnostics. The v3.1 release
-entry point is `run_harmonic_local.py`; do not confuse its 100/500/100
-three-stage budget with the older single-stage 1000-iteration affine preset.
-
-## Current interpretation
-
-The v3.1 configuration completed Balls, Cow, David328, Isis, and
-NefertitiFace with zero original/scaffold flips and self-intersections and with
-rollback disabled. Increasing the local stage from 200 to 500 reduced mean
-area-weighted SD on all five meshes. LR recovery activated only on Cow and was
-neutral on the other four models. Numerical accuracy and runtime are still not
-uniformly superior to mature methods; v3.1 is a reproducible research release,
-not a claim of state-of-the-art distortion.
+Coverage includes bounded pair enumeration, geometry/metric normalization,
+H2-only bounds, v3.1 configuration compatibility, inverse-failure persistence,
+portable model reloading and re-auditing, in addition to the retained PL layer,
+scaffold and baseline tests. Large output/checkpoint files stay local.

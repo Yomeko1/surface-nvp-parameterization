@@ -2,18 +2,60 @@
 
 This project is an injectivity-aware surface parameterization research pipeline inspired by StructuredField's orientation-preserving NVP idea.
 
-Version 3.1 extends the isolated **mesh-aligned piecewise-linear NVP (PL-NVP)**
-research pipeline introduced in v3.0. Instead of applying a continuous
-nonlinear NVP to vertices and repairing invalid discrete outputs with rollback,
-every PL-NVP layer stays inside an exactly computed legal interval or convex
-one-ring region. The v3.1 default composes certified global harmonic modes,
-mesh-local rational-quadratic spline coupling, and a final harmonic refinement;
-it also adds a six-ring scaffold, automatically supported C0 boundary hats,
-and conditioning-risk LR reduction/recovery. Its trainer has no rollback branch. See
+Version **3.2** is a mesh-aligned piecewise-linear NVP (PL-NVP) research release.
+It retains v3.1's legal-domain construction, six-ring scaffold, supported C0
+boundary hats and conditioning-risk learning-rate schedule. The new default is
+**H1 affine100 -> Local RQS500 -> wider affine H2 300**. Only H2's latent affine
+bounds change from `0.08 / 0.20` to `0.16 / 0.40`; H1 is unchanged.
+Its trainer has no rollback branch. See
 [`research/mesh_pl_nvp/PRINCIPLE_CN.md`](research/mesh_pl_nvp/PRINCIPLE_CN.md)
 for the mathematical chain and
 [`research/mesh_pl_nvp/RUN_PIPELINE_CN.md`](research/mesh_pl_nvp/RUN_PIPELINE_CN.md)
 for complete commands.
+
+## v3.2 Quick Start
+
+Python 3.10 or newer is required. Install from the repository root:
+
+```bash
+python -m pip install -e ".[test,usd]"
+surface-nvp-pl --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.2/Cow
+```
+
+The module entry point is equivalent:
+
+```bash
+python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input data/input/00027/Input.obj --output-dir data/output/v3.2/00027 --export-format usda
+```
+
+Use `--device cpu` without CUDA. OBJ input/output works without the optional
+`usd-core` package. By default the output format follows the input; the example
+above explicitly uses USDA to match the historical export-precision audit.
+An existing output directory is rejected. Each run saves `final.obj` or
+`final.usda`, a self-contained `final.model.pt`, native-f64 snapshots, training
+logs, independent audits and `report/RESULTS.md`.
+
+Four metrics are kept separate: sampled geometric round trip (distance / fixed
+3D bounding-box diagonal), original-3D-area-weighted SD, numerical network round
+trip (vertex L2 / fixed initial-original-UV diagonal), and original/scaffold
+flip and intersection counts. Regularized training SD and strict SD are separate
+columns. Numerical inverse failures are recorded, not used to reject an otherwise
+valid parameterization or select a checkpoint. Forward invalidity still stops
+training. `status=ok` for an inverse means finite computation, not certified accuracy.
+
+| Mesh | v3.1 H2 100 SD | Original H2 300 SD | v3.2 wide H2 300 SD |
+|---|---:|---:|---:|
+| 00027 | 54.434032 | 53.281258 | 47.082369 |
+| Cow | 15.062480 | 14.719031 | 13.992588 |
+
+These are paired native-f64, original-area-weighted regularized SD results at
+seed 20260906. Both adopted endpoints have zero audited original/scaffold/export
+flips and intersections. The composed numerical inverse still fails on 00027;
+it succeeds on Cow. Two meshes and one seed do not establish universal improvement.
+See [v3.2.md](v3.2.md) and the compact
+[benchmark record](research/mesh_pl_nvp/benchmarks/v3_2_results.json).
+
+## Retained Baselines
 
 The v2.4 Affine/Spline pipeline is retained unchanged for baselines and
 comparison. It continues to use explicit flip/intersection validation and
@@ -60,7 +102,7 @@ USD support is optional:
 pip install usd-core
 ```
 
-## Usage
+## Retained v2.4 Usage
 
 Initialize UV:
 
@@ -273,7 +315,7 @@ This v2.4 prototype is intended for a simple parameterization setting:
 
 Closed surfaces without cuts, meshes with multiple boundary loops, and heavily non-manifold meshes are outside the intended v2.4 scope. USD/USDA files with multiple mesh prims should use `--prim-path` to select the target mesh.
 
-## Outputs
+## Retained v2.4 Outputs
 
 Training writes:
 
@@ -366,7 +408,7 @@ scripts/
   summarize_metrics.py       aggregate run metrics
 external/slim_runner/        minimal libigl SLIM command-line wrapper
 external/abfpp_runner/       optional pinned OpenABF command-line wrapper
-research/mesh_pl_nvp/         isolated v3.1 mesh-aligned PL-NVP implementation
+research/mesh_pl_nvp/         v3.2 PL-NVP, audits and retained v3.0/v3.1 entry points
 data/input/                   versioned input meshes only
 data/output/                  local generated results (Git-ignored)
 tests/                       loss, initialization, trainer, and NVP tests
@@ -380,10 +422,11 @@ Jacobian determinant. The discrete mesh still requires triangle-area and
 intersection validation because mapped vertices are reconnected by straight
 UV edges.
 
-The v3.1 PL-NVP research pipeline removes that continuous/discrete mismatch:
-its layers are defined directly on the triangulation. It remains isolated from
-the production package while the method's numerical accuracy, runtime, and
-scaffold boundary quality are still under study.
+The v3.2 PL-NVP research pipeline removes that continuous/discrete mismatch:
+its layers are defined directly on the triangulation. Under a valid disk topology,
+a fixed simple outer boundary and positive extended-triangle orientation, the
+PL map is globally injective. Floating-point execution must still be audited;
+this is not a claim of unrestricted numerical inverse stability or state-of-the-art distortion.
 
 The method preserves injectivity best when the initial UV is already valid.
 Tutte circle initialization remains the conservative default. ABF++ guarantees
@@ -396,8 +439,8 @@ The local `data/output/` tree may contain legacy and current experiment artifact
 but it is intentionally excluded from Git. Only input meshes under `data/input/`
 are versioned.
 
-See `v3.1.md` for the current PL-NVP release scope, defaults, guarantees,
-five-mesh validation, and known limitations. `v3.0.md` records the original
+See `v3.2.md` for the current release and `v3.1.md` for the frozen previous
+defaults and five-mesh validation. `v3.0.md` records the original
 mesh-local release. See `v2.4.md` for the retained baseline's full record:
 historical v2.1/v2.2 baselines, the
 memory-bounded global validator, 00027 diagnosis, optimizer/model experiments,

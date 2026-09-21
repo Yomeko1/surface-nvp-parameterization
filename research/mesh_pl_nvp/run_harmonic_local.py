@@ -107,6 +107,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--local-risk-recovery-factor", type=float, default=1.05)
     parser.add_argument("--harmonic-max-log-scale", type=float, default=0.08)
     parser.add_argument("--harmonic-max-shift", type=float, default=0.20)
+    parser.add_argument("--final-harmonic-max-log-scale", type=float, default=None)
+    parser.add_argument("--final-harmonic-max-shift", type=float, default=None)
     parser.add_argument("--area-margin-ratio", type=float, default=1.0e-6)
     parser.add_argument("--local-cycles", type=int, default=4)
     parser.add_argument("--local-hidden-dim", type=int, default=32)
@@ -140,10 +142,10 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None, *, parser=None) -> argparse.Namespace:
     """Load optional YAML defaults before applying explicit CLI overrides."""
 
-    parser = build_parser()
+    parser = build_parser() if parser is None else parser
     config_probe = argparse.ArgumentParser(add_help=False)
     config_probe.add_argument("--config", default=None)
     known, _ = config_probe.parse_known_args(argv)
@@ -197,12 +199,19 @@ def _train_harmonic_stage(
     gradient_clip: float,
     phase: str,
     iteration_offset: int,
+    observer=None,
+    resume_state=None,
 ) -> tuple[torch.Tensor, list[dict[str, Any]], float]:
     optimizer = torch.optim.Adam(module.parameters(), lr=learning_rate)
+    start_iteration = 0 if resume_state is None else int(resume_state["step"])
+    if not 0 <= start_iteration <= iterations:
+        raise ValueError("invalid harmonic resume step")
+    if resume_state is not None:
+        optimizer.load_state_dict(resume_state["optimizer"])
     history: list[dict[str, Any]] = []
     start = time.perf_counter()
     final = None
-    for stage_iteration in range(iterations + 1):
+    for stage_iteration in range(start_iteration, iterations + 1):
         optimizer.zero_grad(set_to_none=True)
         mapped, diagnostics = module(base_uv, return_diagnostics=True)
         loss = symmetric_dirichlet_loss(
@@ -217,6 +226,8 @@ def _train_harmonic_stage(
             raise RuntimeError(
                 f"hard area assertion failed in {phase} at {stage_iteration}; no rollback"
             )
+        if observer is not None:
+            observer(stage_iteration, mapped, loss, diagnostics, optimizer)
         if stage_iteration % check_interval == 0 or stage_iteration == iterations:
             motion = _boundary_summary(reference_uv, mapped.detach(), boundary)
             history.append(
@@ -241,7 +252,9 @@ def _train_harmonic_stage(
             final = mapped.detach()
             break
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(module.parameters(), gradient_clip)
+        gradient_norm = torch.nn.utils.clip_grad_norm_(module.parameters(), gradient_clip)
+        if observer is not None:
+            observer.gradient(stage_iteration, gradient_norm)
         optimizer.step()
     assert final is not None
     return final, history, time.perf_counter() - start
@@ -273,6 +286,8 @@ def _train_local_stage(
     risk_recovery_patience: int = 20,
     risk_recovery_interval: int = 10,
     risk_recovery_factor: float = 1.05,
+    observer=None,
+    resume_state=None,
 ) -> tuple[torch.Tensor, list[dict[str, Any]], float, dict[str, Any]]:
     with torch.no_grad():
         _, initial_diagnostics = module(base_uv, return_diagnostics=True)
@@ -303,7 +318,21 @@ def _train_local_stage(
         if initial_learning_rate >= safe_peak_learning_rate:
             warmup_steps = 0
 
+    start_iteration = 0 if resume_state is None else int(resume_state["step"])
+    if not 0 <= start_iteration <= iterations:
+        raise ValueError("invalid local resume step")
+    if resume_state is not None:
+        saved = resume_state["schedule"]
+        initial_risk_max = saved["initial_risk_max"]
+        initial_risk_p95 = saved["initial_risk_p95"]
+        safety_triggered = saved["safety_triggered"]
+        safe_peak_learning_rate = saved["safe_peak_learning_rate"]
+        initial_learning_rate = saved["initial_learning_rate"]
+        warmup_steps = saved["warmup_steps"]
+
     optimizer = torch.optim.Adam(module.parameters(), lr=initial_learning_rate)
+    if resume_state is not None:
+        optimizer.load_state_dict(resume_state["optimizer"])
     recovery_controller = None
     if risk_recovery:
         recovery_controller = RiskLearningRateRecovery(
@@ -313,11 +342,13 @@ def _train_local_stage(
             factor=risk_recovery_factor,
             maximum_learning_rate=safe_peak_learning_rate,
         )
+        if resume_state is not None:
+            recovery_controller.load_state_dict(saved["recovery_state"])
     history: list[dict[str, Any]] = []
     learning_rate_events: list[dict[str, Any]] = []
     start = time.perf_counter()
     final = None
-    for stage_iteration in range(iterations + 1):
+    for stage_iteration in range(start_iteration, iterations + 1):
         optimizer.zero_grad(set_to_none=True)
         mapped, diagnostics = module(base_uv, return_diagnostics=True)
         loss = symmetric_dirichlet_loss(
@@ -337,7 +368,9 @@ def _train_local_stage(
         )
         risk_max = float(risk_values.amax())
         risk_p95 = float(torch.quantile(risk_values, 0.95))
-        if risk_adaptive and risk_max > dynamic_risk_threshold:
+        # Saved states are taken after the LR controller, before the Adam update.
+        already_observed = resume_state is not None and stage_iteration == start_iteration
+        if not already_observed and risk_adaptive and risk_max > dynamic_risk_threshold:
             dynamic_cap = max(
                 dynamic_floor_lr,
                 safe_peak_learning_rate
@@ -360,7 +393,7 @@ def _train_local_stage(
                         "conditioning_risk_max": risk_max,
                     }
                 )
-        if recovery_controller is not None and stage_iteration >= warmup_steps:
+        if not already_observed and recovery_controller is not None and stage_iteration >= warmup_steps:
             current_learning_rate = float(optimizer.param_groups[0]["lr"])
             recovery_event = recovery_controller.observe(
                 step=stage_iteration,
@@ -381,6 +414,17 @@ def _train_local_stage(
                         ),
                     }
                 )
+        if observer is not None:
+            observer.schedule_state = {
+                "initial_risk_max": initial_risk_max,
+                "initial_risk_p95": initial_risk_p95,
+                "safety_triggered": safety_triggered,
+                "safe_peak_learning_rate": safe_peak_learning_rate,
+                "initial_learning_rate": initial_learning_rate,
+                "warmup_steps": warmup_steps,
+                "recovery_state": recovery_controller.state_dict() if recovery_controller else None,
+            }
+            observer(stage_iteration, mapped, loss, diagnostics, optimizer)
         if stage_iteration % check_interval == 0 or stage_iteration == iterations:
             motion = _boundary_summary(reference_uv, mapped.detach(), boundary)
             history.append(
@@ -411,7 +455,9 @@ def _train_local_stage(
             final = mapped.detach()
             break
         loss.backward()
-        torch.nn.utils.clip_grad_norm_(module.parameters(), gradient_clip)
+        gradient_norm = torch.nn.utils.clip_grad_norm_(module.parameters(), gradient_clip)
+        if observer is not None:
+            observer.gradient(stage_iteration, gradient_norm)
         optimizer.step()
         if warmup_steps > 0 and stage_iteration < warmup_steps:
             completed = stage_iteration + 1
@@ -537,12 +583,18 @@ def _save_stage(
     return payload
 
 
-def main() -> None:
-    args = parse_args()
+def validate_args(args) -> None:
     if min(args.harmonic_iters, args.local_iters, args.final_harmonic_iters) < 0:
         raise ValueError("stage iteration counts must be non-negative")
     if min(args.harmonic_lr, args.local_lr) <= 0.0:
         raise ValueError("learning rates must be positive")
+    if args.check_interval < 1:
+        raise ValueError("check-interval must be positive")
+    for name in ("harmonic_max_log_scale", "harmonic_max_shift",
+                 "final_harmonic_max_log_scale", "final_harmonic_max_shift"):
+        value = getattr(args, name)
+        if value is not None and (not np.isfinite(value) or value < 0):
+            raise ValueError(f"{name} must be finite and non-negative")
     if args.scaffold_rings < 1:
         raise ValueError("scaffold-rings must be at least 1")
     if args.scaffold_transition_exponent <= 0.0:
@@ -591,6 +643,27 @@ def main() -> None:
             raise ValueError("risk recovery patience and interval must be positive")
         if args.local_risk_recovery_factor <= 1.0:
             raise ValueError("local-risk-recovery-factor must be greater than 1")
+
+
+def observed_inverse(model, uv, reference, *, include_final):
+    try:
+        with torch.no_grad():
+            restored = model(uv, inverse=True, include_final_harmonic=include_final)
+        value = float(torch.max(torch.abs(restored-reference)))
+        return {"status": "ok" if np.isfinite(value) else "nonfinite",
+                "legacy_max_abs_coordinate": value if np.isfinite(value) else None}
+    except (torch.OutOfMemoryError, MemoryError):
+        raise
+    except Exception as exc:
+        if any(s in str(exc).lower() for s in ("out of memory", "not enough memory", "cannot allocate memory")):
+            raise
+        return {"status": "failed", "legacy_max_abs_coordinate": None, "error": repr(exc)}
+
+
+def main() -> None:
+    args = parse_args()
+    validate_args(args)
+    Path(args.output_dir).mkdir(parents=True, exist_ok=False)
     total_start = time.perf_counter()
     torch.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -683,6 +756,8 @@ def main() -> None:
         harmonic_cycles=args.harmonic_cycles,
         harmonic_max_log_scale=args.harmonic_max_log_scale,
         harmonic_max_shift=args.harmonic_max_shift,
+        final_harmonic_max_log_scale=args.final_harmonic_max_log_scale,
+        final_harmonic_max_shift=args.final_harmonic_max_shift,
         area_margin_ratio=args.area_margin_ratio,
         local_cycles=args.local_cycles,
         local_hidden_dim=args.local_hidden_dim,
@@ -746,10 +821,8 @@ def main() -> None:
         risk_recovery_interval=args.local_risk_recovery_interval,
         risk_recovery_factor=args.local_risk_recovery_factor,
     )
-    with torch.no_grad():
-        restored = model.local(two_stage_uv, inverse=True)
-        restored = model.first_harmonic(restored, inverse=True)
-    two_inverse_error = float(torch.max(torch.abs(restored - reference)))
+    two_inverse = observed_inverse(model, two_stage_uv, reference, include_final=False)
+    two_inverse_error = two_inverse["legacy_max_abs_coordinate"]
     first_motion = _boundary_summary(reference, first_uv, boundary)
     two_motion = _boundary_summary(reference, two_stage_uv, boundary)
     output_dir = Path(args.output_dir)
@@ -804,6 +877,7 @@ def main() -> None:
         "selected_checkpoint": "two_stage_final_no_rollback",
         "selected_iteration": args.harmonic_iters + args.local_iters,
         "inverse_max_abs_error": two_inverse_error,
+        "network_inverse": two_inverse,
         "stage_boundary_motion": {
             "after_first_harmonic": first_motion,
             "after_local": two_motion,
@@ -835,7 +909,7 @@ def main() -> None:
     print(
         f"two-stage SD={two_payload['final']['distortion']['symmetric_dirichlet_area_weighted_mean']:.8f} "
         f"boundary={two_motion['mean_displacement_percent_of_initial_radius']:.4f}% "
-        f"inverse={two_inverse_error:.3e}"
+        f"inverse={two_inverse}"
     )
 
     model.set_trainable_stage("final_harmonic")
@@ -853,12 +927,10 @@ def main() -> None:
         phase="final_global_harmonic",
         iteration_offset=args.harmonic_iters + args.local_iters,
     )
+    three_inverse = observed_inverse(model, three_stage_uv, reference, include_final=True)
+    three_inverse_error = three_inverse["legacy_max_abs_coordinate"]
     with torch.no_grad():
-        restored = model.final_harmonic(three_stage_uv, inverse=True)
-        restored = model.local(restored, inverse=True)
-        restored = model.first_harmonic(restored, inverse=True)
         composed = model(include_final_harmonic=True)
-    three_inverse_error = float(torch.max(torch.abs(restored - reference)))
     composition_error = float(torch.max(torch.abs(composed - three_stage_uv)))
     three_motion = _boundary_summary(reference, three_stage_uv, boundary)
     three_info = {
@@ -868,6 +940,7 @@ def main() -> None:
             args.harmonic_iters + args.local_iters + args.final_harmonic_iters
         ),
         "inverse_max_abs_error": three_inverse_error,
+        "network_inverse": three_inverse,
         "cached_vs_composed_max_abs_error": composition_error,
         "stage_boundary_motion": {
             "after_first_harmonic": first_motion,
@@ -902,7 +975,7 @@ def main() -> None:
     print(
         f"three-stage SD={three_payload['final']['distortion']['symmetric_dirichlet_area_weighted_mean']:.8f} "
         f"boundary={three_motion['mean_displacement_percent_of_initial_radius']:.4f}% "
-        f"inverse={three_inverse_error:.3e} output={output_dir}"
+        f"inverse={three_inverse} output={output_dir}"
     )
 
 

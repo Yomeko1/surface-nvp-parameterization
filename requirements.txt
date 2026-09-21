@@ -5,6 +5,8 @@ torch
 nflows
 matplotlib
 pyyaml
+shapely>=2.1,<3
+psutil
 
 # Optional USD/USDA support:
 # pip install usd-core

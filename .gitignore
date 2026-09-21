@@ -3,6 +3,8 @@ v1.md
 __pycache__/
 *.pyc
 .pytest_cache/
+.pytest_tmp*/
+_beamer_build/
 .mypy_cache/
 .ruff_cache/
 .coverage

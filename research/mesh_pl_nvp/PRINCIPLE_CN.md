@@ -1,4 +1,8 @@
-# v3.1 Mesh-aligned PL-NVP：从 rollback 问题到完整管线
+# v3.2 Mesh-aligned PL-NVP：结构原理与数值审计
+
+v3.2 保留以下 v3.1 结构推导，只将 H2 改为 300 步及两倍 affine 幅度；H1 不变。
+新的正式入口和输出格式见 `RUN_PIPELINE_CN.md`，四类指标见 `AUDIT_PROTOCOL_CN.md`。
+下面的 v3.1 历史配置表不代表 v3.2 默认值；历史版本完整说明保留在根目录 `v3.1.md`。
 
 本文按“旧方法为什么不足 → 直接修改会产生什么新问题 → 如何解决 → 又产生什么问题”的顺序，说明 `research/mesh_pl_nvp` 的动机、结构保证、数值实现和完整运行管线。
 
@@ -370,7 +374,7 @@ E_f=\sum_{k=1}^{2}
 
 这样可以清楚地区分两件事：合法性由网络结构和拓扑边界条件提供，优化器只负责降低原始网格的几何畸变。
 
-## 12. 完整运行管线
+## 12. v3.1 历史运行管线
 
 通用入口为：
 
@@ -385,7 +389,7 @@ python -m research.mesh_pl_nvp.run_harmonic_local `
 
 1. 读取 OBJ/USD/USDA 网格和 3D 几何；
 2. 检查连通、边流形、单边界环和圆盘 Euler characteristic；
-3. 若未显式传入 `--initial-uv`，无论文件中是否已有 UV，都重新计算 Tutte 圆边界初值；当前不接入 Mean-Value 或 ABF++；
+3. 无论文件中是否已有 UV，都重新计算 Tutte 圆边界初值；该入口没有 `--initial-uv` 开关；
 4. 根据 `geometry_scale` 归一化几何尺度并验证初值 0 翻转、0 自交；
 5. 建立 scale 1.1、6 圈、指数 3 的 scaffold，并固定最外凸环；
 6. 构造 Fourier 与 C0 boundary-hat harmonic modes，自动去掉边界采样不足的 hat 尺度；
@@ -452,7 +456,11 @@ python -m research.mesh_pl_nvp.run_harmonic_local `
 | `scaffold_transition_exponent` | `3.0` | 过渡几何与模式衰减指数 |
 | `scaffold_mode_profile` | `geometric` | 模式位移与 scaffold 几何一致过渡 |
 
-## 14. 输出、评价指标与结果报告
+## 14. 历史输出与 v3.2 评价更新
+
+v3.2 在逆审计之前保存 `final.*`、自包含模型和原生快照。几何往返、面积加权 SD、
+网络数值往返以及翻转/自交分开记录，不设 `1e-8` 等网络误差验收阈值。
+网络逆失败不等于最终 PL 几何映射失败；正向非法仍必须停止。以下目录描述属于旧入口。
 
 每次通用运行在 `two_stage/` 与 `three_stage/` 分别保存 H1+local 和
 H1+local+H2。发布结果以 `three_stage/` 为准，包括：
@@ -504,7 +512,8 @@ area-weighted SD 从 4.8850 降至 4.8069，符合当前只关注整体 SD 的�
 - 运行速度明显慢于 v2.4 Spline；
 - 整体 SD 尚未在每个 mesh 上超过 v3.0 或成熟方法；
 - boundary hats 增强了非光滑边界表达，但通常仍不能复现完全自由的 SLIM 边界；
-- 当前不优化尾部 SD，也不支持 00027 一类需进一步拓扑处理的复杂输入；
+- 当前不优化尾部 SD；00027 本身满足所需圆盘拓扑，v3.2 已完成正向参数化和几何审计，
+  其未解决问题是完整网络浮点逆失败，不能误归因为必须进一步处理拓扑；
 - 当前只支持具有单边界的圆盘拓扑，其他拓扑需要先切割或扩展理论。
 
 这些限制不改变 v3.1 的核心闭环：合法性由可达集合和拓扑边界条件提供，优化器只在合法映射族中降低原始面 SD。

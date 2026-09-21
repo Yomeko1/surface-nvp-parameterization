@@ -4,10 +4,10 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "surface-nvp-param"
-version = "3.1.0"
+version = "3.2.0"
 description = "Surface parameterization with continuous and mesh-aligned piecewise-linear NVP pipelines"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 dependencies = [
   "numpy",
   "scipy",
@@ -15,6 +15,8 @@ dependencies = [
   "matplotlib",
   "PyYAML",
   "nflows",
+  "shapely>=2.1,<3",
+  "psutil",
 ]
 
 [project.optional-dependencies]
@@ -22,6 +24,7 @@ test = ["pytest"]
 usd = ["usd-core"]
 
 [project.scripts]
+surface-nvp-pl = "research.mesh_pl_nvp.run_v32:main"
 surface-nvp-init = "scripts.init_uv:main"
 surface-nvp-train = "scripts.train_injective_nvp:main"
 surface-nvp-direct = "scripts.train_direct_uv:main"
@@ -31,4 +34,7 @@ surface-nvp-summarize = "scripts.summarize_metrics:main"
 surface-nvp-fit-target = "scripts.fit_nvp_to_target:main"
 
 [tool.setuptools.packages.find]
-include = ["surface_nvp*", "scripts"]
+include = ["surface_nvp*", "scripts", "research", "research.mesh_pl_nvp"]
+
+[tool.setuptools.package-data]
+"research.mesh_pl_nvp" = ["*.yaml", "*.md", "*.bib", "benchmarks/*.json"]

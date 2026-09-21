@@ -48,6 +48,8 @@ class HarmonicLocalHarmonicFlow(nn.Module):
         local_latent_transform: str = "affine",
         local_spline_bins: int = 8,
         local_spline_bound: float = 8.0,
+        final_harmonic_max_log_scale: float | None = None,
+        final_harmonic_max_shift: float | None = None,
     ) -> None:
         super().__init__()
         names = tuple(names)
@@ -75,8 +77,13 @@ class HarmonicLocalHarmonicFlow(nn.Module):
             spline_bins=local_spline_bins,
             spline_bound=local_spline_bound,
         )
+        final_arguments = dict(harmonic_arguments)
+        if final_harmonic_max_log_scale is not None:
+            final_arguments["max_log_scale"] = final_harmonic_max_log_scale
+        if final_harmonic_max_shift is not None:
+            final_arguments["max_shift"] = final_harmonic_max_shift
         self.final_harmonic = GlobalHarmonicModeFlow(
-            initial_uv, faces, modes, names, **harmonic_arguments
+            initial_uv, faces, modes, names, **final_arguments
         )
 
     @property

@@ -169,25 +169,39 @@ def make_grid_triangulation(nx: int = 6, ny: int = 6, *, dtype=torch.float64) ->
     return vertices, torch.tensor(faces, dtype=torch.long)
 
 
+def _upper_triangle_batches(count: int, batch_size: int, device):
+    """Enumerate every i < j once without allocating the complete pair table."""
+    if batch_size < 1:
+        raise ValueError("pair_batch_size must be positive")
+    tile = max(1, int(batch_size ** 0.5))
+    for i in range(0, count, tile):
+        ni = min(tile, count-i)
+        for j in range(i, count, tile):
+            nj = min(tile, count-j)
+            if i == j:
+                pairs = torch.triu_indices(ni, ni, offset=1, device=device)
+                yield pairs + i
+            else:
+                first = torch.arange(i, i+ni, device=device).repeat_interleave(nj)
+                second = torch.arange(j, j+nj, device=device).repeat(ni)
+                yield torch.stack((first, second))
+
+
 def count_proper_edge_intersections(
     vertices: Tensor,
     faces: Tensor,
     tolerance: float = 1.0e-12,
     pair_batch_size: int = 262_144,
 ) -> int:
-    """Count strict crossings between non-adjacent edges in vectorized batches."""
+    """Original v3.1 crossing predicate with bounded, exhaustive pair enumeration."""
     edges: set[tuple[int, int]] = set()
     for face in faces.detach().cpu().tolist():
         for offset in range(3):
             a, b = face[offset], face[(offset + 1) % 3]
             edges.add((min(a, b), max(a, b)))
     edge_tensor = torch.tensor(sorted(edges), dtype=torch.long, device=vertices.device)
-    pair_indices = torch.triu_indices(
-        edge_tensor.shape[0], edge_tensor.shape[0], offset=1, device=vertices.device
-    )
     intersections = 0
-    for start in range(0, pair_indices.shape[1], pair_batch_size):
-        pairs = pair_indices[:, start : start + pair_batch_size]
+    for pairs in _upper_triangle_batches(edge_tensor.shape[0], pair_batch_size, vertices.device):
         first = edge_tensor[pairs[0]]
         second = edge_tensor[pairs[1]]
         disjoint = (
