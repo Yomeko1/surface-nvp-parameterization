@@ -27,8 +27,8 @@ Tutte circle、geometry_scale=true、六圈 scaffold、scale=1.1、指数=3、Fo
 ## 2. 正式运行
 
 ```powershell
-python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.2/Cow
-python -m research.mesh_pl_nvp.run_v32 --input data/input/00027/Input.obj --output-dir data/output/v3.2/00027 --export-format usda
+python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input "data/input/Cow#/Cow_dABF.usda" --output-dir data/output/v3.2/Cow/ours
+python -m research.mesh_pl_nvp.run_v32 --input data/input/00027/Input.obj --output-dir data/output/v3.2/00027/ours --export-format usda
 ```
 
 其他保留输入：`Balls/Balls.obj`、`David328/David328.usda`、`Isis/Isis_dABF.usda`、
@@ -48,7 +48,7 @@ surface-nvp-pl --input data/input/Balls/Balls.obj --output-dir data/output/v3.2/
 短诊断只验证运行，不用于精度对照。仅训练、稍后审计：
 
 ```powershell
-python -m research.mesh_pl_nvp.run_v32 train --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.2/Cow_deferred
+python -m research.mesh_pl_nvp.run_v32 train --input "data/input/Cow#/Cow_dABF.usda" --output-dir data/output/v3.2/Cow_deferred
 python -m research.mesh_pl_nvp.run_v32 audit data/output/v3.2/Cow_deferred --device cuda
 ```
 
@@ -61,24 +61,52 @@ python -m research.mesh_pl_nvp.run_v32 report data/output/v3.2/Cow_deferred --re
 
 ## 4. 输出和加载
 
-- `final.obj`/`final.usda`：固定预算终点，逆审计之前保存。
-- `final.model.pt`：参考几何、构造参数、权重和原生 UV，可独立加载。
-- `reference.pt`、`snapshots/`：每 50 步及阶段末的 UV、参数、Adam、RNG 和 Local 调度状态。
-- `training.jsonl`、`gradients.jsonl`：逐步 SD、LR、面积、q、内存、裁剪前梯度范数。
-- `manifest.json`、`source.zip`：配置、种子、输入/源码 hash、版本和环境。
-- `audit/`、`report/`：四类指标、每面数据、导出、汇总表和图。
-- `status.json` 为训练状态；`completion.json` 为训练加审计总体状态。
+2026-09-22 起将展示结果与完整复现记录分开，不改变训练配置或 v3.2 tag。
+
+`data/output/v3.2/00xxx/ours/` 与 `slim/` 并列，参照 SLIM 保留：
+
+- `final.obj`/`final.usda` 和 `initial.obj`/`initial.usda`：终点与初值；终点在逆审计之前保存。
+- 初始/最终 UV、畸变热图，以及 UV、畸变和面积对比图。
+- 初始/最终翻转热图、最终自交热图、SD 曲线、四指标图。
+- `summary.json`/CSV、`config.json`、`completion.json`、`RESULTS.md` 和绘图尺度记录。
+- 若有相邻 `slim/00xxx.obj`，自动生成 SLIM 对照图；也可指定 `--slim-result PATH`。
+- `run.json`：指向独立归档的相对路径。目录内没有 checkpoint、逐步日志或源码 ZIP。
+
+完整归档默认为 `data/archive/v3.2/00xxx/ours/`：
+
+- `final.model.pt`、`reference.pt`、`snapshots/`：模型、原生 UV、Adam、RNG、调度状态。
+- `training.jsonl`、`gradients.jsonl`：逐步记录；`manifest.json`：配置、版本、设备和 hash。
+- `audit/`、`report/`：原始审计、每面数据和完整报告。`status.json` 为训练状态。
+- `source.ref.json` 指向 `data/archive/_sources/<SHA256>.zip`，按原 ZIP 字节去重。
+
+可用 `--archive-dir PATH` 指定独立且不存在的归档目录，不能与结果目录嵌套。
+输出不在 `data/output/` 下时，默认归档为旁边的 `_run_archives/<结果目录名>/`。
+两者须在同一磁盘上以保存相对路径；搬迁时保持相对结构。
+`train` 模式只生成网格和待审计状态；随后 `audit` 自动补图和指标。
+图使用 native float64 数据，不改变 UV 或 SD；截色只影响热图显示，对比图共用色标。
+相交计数只在实际检查点画圆圈，未检查的步骤不是零；圆圈不是失败符号。
+
+已有完整运行可不训练，直接生成新的展示目录（旧式原始运行目录也支持）：
+
+```powershell
+python -m research.mesh_pl_nvp.run_v32 present data/output/v3.2/00027/ours --output-dir data/output/v3.2/00027/ours_figures
+```
+
+再次审计或生成原始报告要选新名称；旧结果不覆盖。重新绘图须选新展示目录。
+`present` 使用已完成的审计和报告；若要更新报告图，先执行 `report --report-name NEW`，
+再给 `present` 传相同 `--report-name NEW`。
 
 仅加载可信 `.pt` 文件，它们使用 pickle：
 
 ```python
 from research.mesh_pl_nvp.run_v31_audit import load_checkpoint
-model, payload = load_checkpoint("data/output/v3.2/Cow/final.model.pt", "cuda")
+model, payload = load_checkpoint("data/output/v3.2/Cow/ours", "cuda")
 model.eval()
 ```
 
 重新审计使用保存的参考几何，不依赖原输入绝对路径。独立审计导出只负责几何/UV，
-不负责搬运原纹理资源。旧 OBJ I/O 的材质复制行为保留。
+不负责搬运原纹理资源。原 OBJ I/O 的材质库复制行为保留；纹理图片仍需自行提供。
+最终网格和图可单独使用；再次审计或加载模型则需保留归档及 `run.json` 路径关系。
 
 ## 5. 误差和失败
 
@@ -96,7 +124,7 @@ SD 只按原始 3D 面积加权，不重新缩放；strict 与 regularized 分�
 ## 6. 旧版复现
 
 ```powershell
-python -m research.mesh_pl_nvp.run_harmonic_local --config research/mesh_pl_nvp/v3_1_default.yaml --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.1/Cow_new
+python -m research.mesh_pl_nvp.run_harmonic_local --config research/mesh_pl_nvp/v3_1_default.yaml --input "data/input/Cow#/Cow_dABF.usda" --output-dir data/output/v3.1/Cow_new
 ```
 
 旧入口写 `two_stage/`、`three_stage/`，部分旧指标为 float32；新表格应使用 v3.2 审计。

@@ -15,7 +15,7 @@ See [PRINCIPLE_CN.md](PRINCIPLE_CN.md) for the structural argument,
 
 ```bash
 python -m pip install -e ".[test,usd]"
-python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.2/Cow
+python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input "data/input/Cow#/Cow_dABF.usda" --output-dir data/output/v3.2/Cow/ours
 ```
 
 `surface-nvp-pl` is the installed console command. The YAML is optional: built-in
@@ -30,8 +30,15 @@ This is an installation check, not a quality benchmark.
 ## Results and Audits
 
 `final.obj`/`final.usda`, `final.model.pt` and native snapshots are saved before
-network inverse auditing. `audit/` holds four distinct metrics and explicit
-failure statuses; `report/` holds a JSON table, Markdown report and plots.
+network inverse auditing. Result folders now hold final/initial meshes, UV and
+distortion figures, area/flip/intersection heatmaps, SD/four-metric curves and
+compact metrics/configuration. Adjacent SLIM results add comparison figures
+using the same native-f64 metrics and shared color scales.
+Models, logs, snapshots, `audit/` and `report/` are stored separately under
+`data/archive/`, linked through `run.json`. Source snapshots are deduplicated by
+SHA256, with `source.ref.json` locators. `run_v32 audit` and `load_checkpoint`
+accept the result directory; `run_v32 present RESULT --output-dir NEW_DIRECTORY`
+regenerates figures without training. See the run guide for location overrides.
 Original and extended geometry are checked separately, including quantized export.
 An inverse status of `ok` only means finite computation; inspect the residual.
 00027 still exhibits composed-network inverse failure despite valid geometric UV.

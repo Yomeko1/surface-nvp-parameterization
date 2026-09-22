@@ -30,13 +30,19 @@ def nested(value, *keys):
     return value
 
 
-def summarize(output, audit_name="audit", report_name="report"):
+def validity_checkpoints(initial, records, offsets):
+    points = [{"global_step": 0, **initial}]
+    points.extend({**r, "global_step": offsets[r["phase"]]+r["step"]} for r in records)
+    return [p for p in points if p["extended_validity"]["intersection_pairs"] is not None]
+
+
+def summarize(output, audit_name="audit", report_name="report", source_store_dir=None):
     output = Path(output)
     if Path(report_name).name != report_name or report_name in {".", ".."}:
         raise ValueError("report name must be a simple subdirectory name")
     destination = output/report_name
     destination.mkdir(exist_ok=False)
-    archive_sources(destination/"source.zip")
+    archive_sources(destination/"source.zip", source_store_dir)
     audit = output/audit_name
     manifest, status = read(output/"manifest.json"), read(output/"status.json")
     records, initial = read(audit/"summary.json"), read(audit/"initial.json")
@@ -104,14 +110,18 @@ def summarize(output, audit_name="audit", report_name="report"):
         axes[1, 0].text(.5, .5, "No positive finite residuals; see inverse statuses",
             ha="center", va="center", transform=axes[1, 0].transAxes, fontsize=9)
     axes[1, 1].plot(x, [r["extended_flipped"] for r in rows], color="#b25c30", label="Extended flipped faces")
-    checked = [p for p in points if p["extended_validity"]["intersection_pairs"] is not None]
+    checked = validity_checkpoints(initial, records, offsets)
     axes[1, 1].scatter([p["global_step"] for p in checked],
         [p["extended_validity"]["intersection_pairs"] for p in checked],
-        color="#177a57", marker="x", s=55, label="Extended intersections (checked only)")
+        color="#177a57", marker="o", s=35, facecolors="none", zorder=3,
+        label="Intersection pairs at audited steps")
     from matplotlib.ticker import MaxNLocator
     max_count = max([r["extended_flipped"] for r in rows] + [p["extended_validity"]["intersection_pairs"] for p in checked])
     axes[1, 1].set(title="Validity counts", ylabel="Count", ylim=(-.1, max(1., max_count*1.1)))
     axes[1, 1].yaxis.set_major_locator(MaxNLocator(integer=True))
+    if max_count == 0:
+        axes[1, 1].text(.5, .5, "0 flipped faces; 0 intersection pairs at all checked steps",
+            transform=axes[1, 1].transAxes, ha="center", va="center", fontsize=9, wrap=True)
     for ax in axes.flat:
         ax.set_xlabel("Completed parameter updates")
         ax.grid(alpha=.2)
@@ -120,7 +130,8 @@ def summarize(output, audit_name="audit", report_name="report"):
             ax.axvline(boundary, color="#777777", alpha=.4, linewidth=.7)
     fig.savefig(destination/"four_metrics.png", dpi=160)
     plt.close(fig)
-    mesh_name = Path(config["input"]).stem
+    input_path = Path(config["input"])
+    mesh_name = input_path.parent.name.rstrip("#") if input_path.stem == "Input" else input_path.stem
     release = manifest.get("release", "v3.1-audit")
     lines = [f"# {release} / {mesh_name} Audit Results", "", "No error acceptance thresholds or best-checkpoint selection.", "",
         f"Training status: {status['status']}. Updates: {status.get('updates', 'incomplete')}.",
@@ -143,7 +154,8 @@ def summarize(output, audit_name="audit", report_name="report"):
         "- Geometry uses three fixed interior samples per original face; it is not a continuous worst-case bound.",
         "- Network residual is a state-space numerical cycle, not the geometric inverse and not undoing Adam.",
         "- Only original 3D faces contribute to SD. Regularized and strict formulas remain separate.",
-        "- Global intersections were checked at initialization and stage endpoints, not at every update.",
+        "- Circles mark intersection counts at every audited checkpoint, including H2 milestones; they are not failure markers.",
+        "- Global intersections were checked at scheduled checkpoints, not at every update.",
         "- Intermediate null intersection counts mean not checked, never zero.",
         "- The GEOS intersection audit uses floating-point constructions, not a universal exact-arithmetic certificate.",
         "- Native f64, selected-format export/decode and float32 query variants are separate in each endpoint JSON.",
@@ -152,8 +164,8 @@ def summarize(output, audit_name="audit", report_name="report"):
         "- Red crosses at the top of the network plot are failure statuses, not numerical residual values.",
         "- Connecting sampled metrics does not certify values between snapshots; no 1e-8 acceptance line is applied.",
         "", "## Reproducibility", "",
-        "See manifest.json, source.zip, reference.pt, training.jsonl, gradients.jsonl and snapshots/ in the run directory.",
-        "The audit has its own source archive and manifest. Reference literature and metric definitions are in the isolated branch.", ""])
+        "See manifest.json, reference.pt, training.jsonl, gradients.jsonl and snapshots/ in the run archive.",
+        "Source snapshots are stored as source.zip or referenced by source.ref.json in the shared content-addressed store.", ""])
     (destination/"RESULTS.md").write_text('\n'.join(lines), encoding="utf-8")
     print(json.dumps(consistency, indent=2))
 

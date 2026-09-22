@@ -19,21 +19,32 @@ Python 3.10 or newer is required. Install from the repository root:
 
 ```bash
 python -m pip install -e ".[test,usd]"
-surface-nvp-pl --input data/input/Cow/Cow_dABF.usda --output-dir data/output/v3.2/Cow
+surface-nvp-pl --input "data/input/Cow#/Cow_dABF.usda" --output-dir data/output/v3.2/Cow/ours
 ```
 
 The module entry point is equivalent:
 
 ```bash
-python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input data/input/00027/Input.obj --output-dir data/output/v3.2/00027 --export-format usda
+python -m research.mesh_pl_nvp.run_v32 --config research/mesh_pl_nvp/v3_2_default.yaml --input data/input/00027/Input.obj --output-dir data/output/v3.2/00027/ours --export-format usda
 ```
 
 Use `--device cpu` without CUDA. OBJ input/output works without the optional
 `usd-core` package. By default the output format follows the input; the example
 above explicitly uses USDA to match the historical export-precision audit.
-An existing output directory is rejected. Each run saves `final.obj` or
-`final.usda`, a self-contained `final.model.pt`, native-f64 snapshots, training
-logs, independent audits and `report/RESULTS.md`.
+Existing result and archive directories are rejected. As of September 22, 2026,
+`data/output/v3.2/<mesh>/ours/` contains final/initial meshes, UV and distortion
+plots, area/flip/intersection diagnostics, SD/four-metric curves, concise
+`summary.json`/CSV, `config.json`, `completion.json` and `RESULTS.md`.
+An adjacent `slim/<mesh>.obj` adds shared-scale SLIM comparison plots; use
+`--slim-result PATH` for another location. No UV post-scaling is applied.
+
+Models, snapshots, logs and raw audits live in `data/archive/v3.2/<mesh>/ours/`.
+`run.json` links the result to its archive, and `load_checkpoint(RESULT_DIRECTORY)`
+follows this locator. `--archive-dir` overrides the archive location; outside
+`data/output/`, the default is a sibling `_run_archives/<result-name>/`.
+Source ZIPs are stored once by SHA256 and referenced by `source.ref.json`.
+Keep the archive with the results for re-auditing or model use. This output-only
+maintenance update does not change the v3.2 training preset or move its release tag.
 
 Four metrics are kept separate: sampled geometric round trip (distance / fixed
 3D bounding-box diagonal), original-3D-area-weighted SD, numerical network round

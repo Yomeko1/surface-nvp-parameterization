@@ -10,6 +10,7 @@ import traceback
 from . import run_harmonic_local as baseline
 from .run_v31_audit import audit, is_oom, train, write_json
 from .summarize_v31_audit import read, summarize
+from .result_layout import create_result, default_archive, expose_final, resolve_run, source_store, validate_locations
 
 
 def parse_args(argv=None):
@@ -19,6 +20,8 @@ def parse_args(argv=None):
                         final_harmonic_max_shift=.40, check_interval=50)
     parser.add_argument("--snapshot-interval", type=int, default=50)
     parser.add_argument("--export-format", choices=("auto", "obj", "usda"), default="auto")
+    parser.add_argument("--archive-dir", default=None, help="Separate directory for models, logs and raw audits")
+    parser.add_argument("--slim-result", default=None, help="Optional same-mesh SLIM output for shared-scale figures")
     args = baseline.parse_args(argv, parser=parser)
     baseline.validate_args(args)
     if args.snapshot_interval < 1:
@@ -31,10 +34,11 @@ def parse_args(argv=None):
     return args
 
 
-def finish_audit(output, device, *, audit_name="audit", report_name="report"):
+def finish_audit(output, device, *, audit_name="audit", report_name="report", source_store_dir=None):
     output = Path(output)
-    audit(output, device, audit_name, detailed_steps={"final_harmonic": (100, 200, 300)})
-    summarize(output, audit_name, report_name)
+    audit(output, device, audit_name, detailed_steps={"final_harmonic": (100, 200, 300)},
+          source_store_dir=source_store_dir)
+    summarize(output, audit_name, report_name, source_store_dir=source_store_dir)
     rows = read(output/audit_name/"summary.json")
     initial = read(output/audit_name/"initial.json")
     config = read(output/"manifest.json")["config"]
@@ -63,32 +67,74 @@ def finish_audit(output, device, *, audit_name="audit", report_name="report"):
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
-    mode = argv.pop(0) if argv and argv[0] in {"run", "train", "audit", "report"} else "run"
-    if mode in {"audit", "report"}:
+    mode = argv.pop(0) if argv and argv[0] in {"run", "train", "audit", "report", "present"} else "run"
+    if mode in {"audit", "report", "present"}:
         parser = argparse.ArgumentParser(description=f"v3.2 {mode} saved results")
         parser.add_argument("output", type=Path)
         parser.add_argument("--device", default="cuda")
         parser.add_argument("--audit-name", default="audit")
         parser.add_argument("--report-name", default="report")
+        parser.add_argument("--output-dir", type=Path, help="Fresh presentation directory (present mode)")
+        parser.add_argument("--slim-result", default=None)
         args = parser.parse_args(argv)
+        archive = resolve_run(args.output)
+        store = source_store(archive)
+        if mode == "present":
+            if args.output_dir is None:
+                parser.error("present requires --output-dir")
+            from .result_visualization import present
+            if not (archive / "completion.json").is_file():
+                raise ValueError("the run has no completed audit")
+            create_result(args.output_dir, archive)
+            present(archive, args.output_dir, audit_name=args.audit_name,
+                    report_name=args.report_name, slim_result=args.slim_result)
+            return
+        if args.output_dir is not None:
+            parser.error("--output-dir is only used with present")
         if mode == "report":
-            summarize(args.output, args.audit_name, args.report_name)
+            summarize(archive, args.audit_name, args.report_name, source_store_dir=store)
         else:
-            finish_audit(args.output, args.device, audit_name=args.audit_name, report_name=args.report_name)
+            result = finish_audit(archive, args.device, audit_name=args.audit_name,
+                                 report_name=args.report_name, source_store_dir=store)
+            # Re-audits keep their own completion record and do not overwrite the original presentation.
+            if not (archive / "completion.json").exists():
+                write_json(archive / "completion.json", result)
+            if archive != args.output.resolve() and not (args.output / "summary.json").exists():
+                from .result_visualization import present
+                present(archive, args.output, audit_name=args.audit_name,
+                        report_name=args.report_name, slim_result=args.slim_result)
+                write_json(args.output / "completion.json", result)
         return
     args = parse_args(argv)
     output = Path(args.output_dir)
     if output.exists():
         raise FileExistsError(f"output already exists: {output}")
+    archive = Path(args.archive_dir).resolve() if args.archive_dir else default_archive(output)
+    validate_locations(output, archive)
+    if archive.exists():
+        raise FileExistsError(f"archive already exists: {archive}")
+    create_result(output, archive)
+    args.result_dir = str(output)
+    args.output_dir = str(archive)
+    args.archive_dir = str(archive)
+    args.source_store = str(source_store(archive))
     phase = "training"
     try:
         train(args, argparse.Namespace(snapshot_interval=args.snapshot_interval))
+        expose_final(archive, output)
+        if mode == "train":
+            write_json(output / "completion.json", {"status": "training_complete", "audit": "pending"})
         if mode == "run":
             phase = "audit"
-            result = finish_audit(output, args.device)
+            result = finish_audit(archive, args.device, source_store_dir=args.source_store)
+            write_json(archive/"completion.json", result)
+            phase = "presentation"
+            from .result_visualization import present
+            present(archive, output, slim_result=args.slim_result)
             write_json(output/"completion.json", result)
     except Exception as exc:
         if output.exists():
+            expose_final(archive, output)
             write_json(output/"completion.json", {"status": "oom" if is_oom(exc) else "failed",
                 "phase": phase, "error": repr(exc), "traceback": traceback.format_exc()})
         raise

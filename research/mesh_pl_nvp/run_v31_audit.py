@@ -6,6 +6,7 @@ import argparse
 from datetime import datetime
 import hashlib
 import importlib.metadata
+import io
 import json
 from pathlib import Path
 import platform
@@ -58,13 +59,18 @@ def write_json(path, value):
     Path(path).write_text(json.dumps(json_safe(value), indent=2, allow_nan=False), encoding="utf-8")
 
 
-def archive_sources(path):
+def archive_sources(path, store=None):
     root = Path(__file__).resolve().parents[2]
-    with zipfile.ZipFile(path, "w", compression=zipfile.ZIP_DEFLATED) as archive:
+    target = io.BytesIO() if store is not None else path
+    with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for folder in (root/"research"/"mesh_pl_nvp", root/"surface_nvp"):
-            for file in folder.rglob("*"):
+            for file in sorted(folder.rglob("*")):
                 if file.suffix in {".py", ".yaml", ".md", ".bib", ".txt"}:
                     archive.write(file, file.relative_to(root))
+    if store is not None:
+        from .result_layout import store_source_bytes
+        return store_source_bytes(path, target.getvalue(), store)
+    return Path(path)
 
 
 def rng_state():
@@ -201,7 +207,7 @@ def train(args, options):
     output.mkdir(parents=True, exist_ok=False)
     (output/"snapshots").mkdir()
     write_json(output/"manifest.json", manifest(args, vars(options)))
-    archive_sources(output/"source.zip")
+    archive_sources(output/"source.zip", getattr(args, "source_store", None))
     start = time.perf_counter()
     model = bundle = recorder = None
     phase = "preprocessing"
@@ -273,6 +279,9 @@ def load_model(bundle, device):
 
 def load_checkpoint(path, device="cpu"):
     """Load only trusted project checkpoints; torch pickle data is executable."""
+    if Path(path).is_dir():
+        from .result_layout import resolve_run
+        path = resolve_run(path)/"final.model.pt"
     payload = torch.load(path, weights_only=False, map_location="cpu")
     if payload["format_version"] != 1:
         raise ValueError("unsupported checkpoint format")
@@ -283,19 +292,19 @@ def load_checkpoint(path, device="cpu"):
     return model, payload
 
 
-def audit(output, device, audit_name="audit", detailed_steps=None):
+def audit(output, device, audit_name="audit", detailed_steps=None, source_store_dir=None):
     output = Path(output)
     if Path(audit_name).name != audit_name or audit_name in {".", ".."}:
         raise ValueError("audit name must be a simple subdirectory name")
     directory = output/audit_name
     directory.mkdir(exist_ok=False)
     audit_start = time.perf_counter()
-    archive_sources(directory/"source.zip")
+    source_archive = archive_sources(directory/"source.zip", source_store_dir)
     write_json(directory/"manifest.json", {"started_at": datetime.now().astimezone().isoformat(),
         "device": device, "torch": torch.__version__, "numpy": np.__version__,
         "shapely": importlib.metadata.version("shapely"),
         "reference_sha256": hashlib.sha256((output/"reference.pt").read_bytes()).hexdigest(),
-        "source_sha256": hashlib.sha256((directory/"source.zip").read_bytes()).hexdigest()})
+        "source_sha256": hashlib.sha256(source_archive.read_bytes()).hexdigest()})
     bundle = torch.load(output/"reference.pt", weights_only=False, map_location="cpu")
     model = load_model(bundle, device)
     reference = bundle["reference"].numpy()

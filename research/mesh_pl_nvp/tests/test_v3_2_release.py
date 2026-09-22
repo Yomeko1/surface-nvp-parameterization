@@ -13,6 +13,7 @@ from research.mesh_pl_nvp.mesh_coupling import make_grid_triangulation
 from research.mesh_pl_nvp.run_harmonic_local import observed_inverse
 from research.mesh_pl_nvp.run_v31_audit import load_checkpoint
 from research.mesh_pl_nvp.run_v32 import main, parse_args
+from research.mesh_pl_nvp.result_layout import resolve_run
 from research.mesh_pl_nvp.tests.test_harmonic_local import _model
 
 
@@ -82,13 +83,33 @@ def test_full_entrypoint_preserves_results_when_inverse_fails(tmp_path, monkeypa
     assert completed["status"] == "complete"
     assert completed["network_non_ok_snapshots"]
     assert (output/"final.obj").exists()
-    assert (output/"report"/"RESULTS.md").exists()
-    model, payload = load_checkpoint(output/"final.model.pt")
+    assert (output/"RESULTS.md").exists()
+    archive = resolve_run(output)
+    assert archive != output
+    assert (archive/"snapshots").is_dir()
+    assert not (output/"training.jsonl").exists()
+    assert not list(output.rglob("*.pt"))
+    assert not list(output.rglob("*.zip"))
+    assert len(list(output.glob("*.png"))) == 12
+    assert (archive/"source.ref.json").exists()
+    model, payload = load_checkpoint(output)
     with torch.no_grad():
         assert torch.equal(model(), payload["uv"])
     with pytest.raises(FileExistsError):
         main(arguments)
     input_path.unlink()
     main(["audit", str(output), "--device", "cpu", "--audit-name", "portable", "--report-name", "portable_report"])
-    assert (output/"portable"/"completion.json").exists()
+    assert (archive/"portable"/"completion.json").exists()
     assert np.array_equal(payload["reference"]["vertices"], mesh.vertices)
+    slim_path = tmp_path/"slim.obj"
+    save_mesh(slim_path, mesh, uv.numpy())
+    for name in ("presentation_one", "presentation_two"):
+        presentation = tmp_path/name
+        main(["present", str(output), "--output-dir", str(presentation),
+              "--audit-name", "portable", "--report-name", "portable_report", "--slim-result", str(slim_path)])
+        assert len(list(presentation.glob("*.png"))) == 15
+        summary = json.loads((presentation/"summary.json").read_text())
+        assert summary["completion"]["audit_name"] == "portable"
+        assert (presentation/"completion.json").exists()
+        assert summary["slim"]["validity"]["intersection_pairs"] == 0
+    assert len(list((archive/"presentation_comparison").glob("*/slim.json"))) == 1
